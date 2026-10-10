@@ -15,7 +15,7 @@ type UseFilesTabStateOptions = {
   queueSearch: (query: string, options?: QueueSearchOptions) => void;
   queueDirectorySearch: (directoryQuery: string, options?: QueueSearchOptions) => void;
   maxSearchHistoryEntries?: number;
-  onNavigateFromSearchToResults?: () => void;
+  onNavigateFromSearchToResults?: (waitForNextResults?: boolean) => void;
 };
 
 type UseFilesTabStateResult = {
@@ -34,6 +34,7 @@ type UseFilesTabStateResult = {
   onDirectoryInputKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   onSearchInputKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   submitFilesQuery: (query: string, options?: { immediate?: boolean }) => void;
+  clearSearch: () => void;
 };
 
 /**
@@ -75,23 +76,17 @@ export function useFilesTabState({
     [queueSearch, updateHistoryFromInput],
   );
 
-  const handleHistoryNavigation = useCallback(
-    (direction: 'older' | 'newer') => {
+  const handleHistoryNavigation = useCallback(() => {
       if (activeTab !== 'files') {
         return;
       }
 
-      const nextValue = navigateSearchHistory(direction);
-      if (nextValue === null) {
-        if (direction === 'newer') {
-          onNavigateFromSearchToResults?.();
-        }
-        return;
+      const nextValue = navigateSearchHistory('older');
+      if (nextValue !== null) {
+        queueSearch(nextValue);
       }
-
-      queueSearch(nextValue);
     },
-    [activeTab, navigateSearchHistory, onNavigateFromSearchToResults, queueSearch],
+    [activeTab, navigateSearchHistory, queueSearch],
   );
 
   const onSearchInputKeyDown = useCallback(
@@ -101,11 +96,23 @@ export function useFilesTabState({
       }
 
       if (event.key === 'Enter') {
+        event.preventDefault();
         submitFilesQuery(event.currentTarget.value, { immediate: true });
+        onNavigateFromSearchToResults?.(true);
         return;
       }
 
-      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') {
+      if (event.key === 'ArrowDown') {
+        if (hasModifierKey(event)) {
+          return;
+        }
+
+        event.preventDefault();
+        onNavigateFromSearchToResults?.();
+        return;
+      }
+
+      if (event.key !== 'ArrowUp') {
         return;
       }
 
@@ -114,9 +121,9 @@ export function useFilesTabState({
       }
 
       event.preventDefault();
-      handleHistoryNavigation(event.key === 'ArrowUp' ? 'older' : 'newer');
+      handleHistoryNavigation();
     },
-    [activeTab, handleHistoryNavigation, submitFilesQuery],
+    [activeTab, handleHistoryNavigation, onNavigateFromSearchToResults, submitFilesQuery],
   );
 
   const onDirectoryInputKeyDown = useCallback(
@@ -155,6 +162,16 @@ export function useFilesTabState({
     [activeTab, queueDirectorySearch],
   );
 
+  const clearSearch = useCallback(() => {
+    if (activeTab === 'events') {
+      setEventFilterQuery('');
+      return;
+    }
+
+    ensureHistoryBuffer('');
+    queueSearch('', { immediate: true });
+  }, [activeTab, ensureHistoryBuffer, queueSearch]);
+
   const onTabChange = useCallback(
     (nextTab: StatusTabKey) => {
       setActiveTab(nextTab);
@@ -190,5 +207,6 @@ export function useFilesTabState({
     onDirectoryInputKeyDown,
     onSearchInputKeyDown,
     submitFilesQuery,
+    clearSearch,
   };
 }

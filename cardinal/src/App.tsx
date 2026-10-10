@@ -1,8 +1,9 @@
-import { useRef, useCallback, useEffect, useMemo } from 'react';
+import { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, CSSProperties, MouseEvent as ReactMouseEvent } from 'react';
 import './App.css';
 import { FileRow } from './components/FileRow';
 import { SearchBar } from './components/SearchBar';
+import { MenuBar } from './components/MenuBar';
 import { FilesTabContent } from './components/FilesTabContent';
 import { PermissionOverlay } from './components/PermissionOverlay';
 import PreferencesOverlay from './components/PreferencesOverlay';
@@ -24,6 +25,8 @@ import { useTranslation } from 'react-i18next';
 import { useFullDiskAccessPermission } from './hooks/useFullDiskAccessPermission';
 import type { DisplayState } from './components/StateDisplay';
 import { openResultPath } from './utils/openResultPath';
+import { revealResultPath } from './utils/revealResultPath';
+import { openPreferences } from './utils/openPreferences';
 import { useStableEvent } from './hooks/useStableEvent';
 import { useAppHotkeys } from './hooks/useAppHotkeys';
 import { useAppPreferences } from './hooks/useAppPreferences';
@@ -64,6 +67,7 @@ function App() {
   const headerRef = useRef<HTMLDivElement | null>(null);
   const virtualListRef = useRef<VirtualListHandle | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [showStatusBar, setShowStatusBar] = useState(true);
 
   const { colWidths, onResizeStart, autoFitColumns } = useColumnResize();
   const { caseSensitive, directoryQuery, directoryScopeOpen } = searchParams;
@@ -97,14 +101,37 @@ function App() {
     moveSelection,
   } = useSelection(displayedResults, displayedResultsVersion, virtualListRef);
 
-  const navigateFromSearchToResults = useCallback(() => {
+  const pendingFirstResultVersionRef = useRef<number | null>(null);
+  const navigateFromSearchToResults = useCallback(
+    (waitForNextResults = false) => {
+      if (waitForNextResults) {
+        pendingFirstResultVersionRef.current = displayedResultsVersion;
+      }
+
+      if (displayedResults.length === 0) {
+        return;
+      }
+
+      selectSingleRow(0);
+      searchInputRef.current?.blur();
+    },
+    [displayedResults.length, displayedResultsVersion, selectSingleRow],
+  );
+
+  useEffect(() => {
+    const pendingVersion = pendingFirstResultVersionRef.current;
+    if (pendingVersion === null || displayedResultsVersion <= pendingVersion) {
+      return;
+    }
+
+    pendingFirstResultVersionRef.current = null;
     if (displayedResults.length === 0) {
       return;
     }
 
     selectSingleRow(0);
     searchInputRef.current?.blur();
-  }, [displayedResults.length, selectSingleRow]);
+  }, [displayedResults.length, displayedResultsVersion, selectSingleRow]);
 
   const {
     activeTab,
@@ -121,6 +148,7 @@ function App() {
     onDirectoryInputKeyDown,
     onSearchInputKeyDown,
     submitFilesQuery,
+    clearSearch,
   } = useFilesTabState({
     searchQuery: searchParams.query,
     directoryQuery,
@@ -178,6 +206,12 @@ function App() {
 
   useEffect(() => {
     focusAndSelectSearchInput();
+  }, [focusAndSelectSearchInput]);
+
+  useEffect(() => {
+    const handleMenuFocusSearch = () => focusAndSelectSearchInput();
+    window.addEventListener('cardinal:focus-search', handleMenuFocusSearch);
+    return () => window.removeEventListener('cardinal:focus-search', handleMenuFocusSearch);
   }, [focusAndSelectSearchInput]);
 
   const refreshSearchResults = useCallback(() => {
@@ -254,6 +288,31 @@ function App() {
     queueDirectoryScopeOpen(!directoryScopeOpen);
   }, [directoryScopeOpen, queueDirectoryScopeOpen]);
 
+  useEffect(() => {
+    const handleClearSearch = () => clearSearch();
+    const handleToggleCaseSensitive = () =>
+      updateSearchParams({ caseSensitive: !caseSensitive });
+    const handleToggleDirectoryScope = () => toggleDirectoryScope();
+    const handleToggleStatusBar = () => setShowStatusBar((visible) => !visible);
+    const handleShowFiles = () => onTabChange('files');
+    const handleShowEvents = () => onTabChange('events');
+
+    window.addEventListener('cardinal:clear-search', handleClearSearch);
+    window.addEventListener('cardinal:toggle-case-sensitive', handleToggleCaseSensitive);
+    window.addEventListener('cardinal:toggle-directory-scope', handleToggleDirectoryScope);
+    window.addEventListener('cardinal:toggle-status-bar', handleToggleStatusBar);
+    window.addEventListener('cardinal:show-files', handleShowFiles);
+    window.addEventListener('cardinal:show-events', handleShowEvents);
+    return () => {
+      window.removeEventListener('cardinal:clear-search', handleClearSearch);
+      window.removeEventListener('cardinal:toggle-case-sensitive', handleToggleCaseSensitive);
+      window.removeEventListener('cardinal:toggle-directory-scope', handleToggleDirectoryScope);
+      window.removeEventListener('cardinal:toggle-status-bar', handleToggleStatusBar);
+      window.removeEventListener('cardinal:show-files', handleShowFiles);
+      window.removeEventListener('cardinal:show-events', handleShowEvents);
+    };
+  }, [caseSensitive, clearSearch, onTabChange, toggleDirectoryScope, updateSearchParams]);
+
   const handleHorizontalSync = useCallback((scrollLeft: number) => {
     // VirtualList drives the scroll position; mirror it onto the sticky header for alignment.
     if (headerRef.current) {
@@ -307,6 +366,7 @@ function App() {
           onContextMenu={handleRowContextMenu}
           onSelect={handleRowSelect}
           onOpen={openResultPath}
+          onRevealInFinder={revealResultPath}
         />
       );
     },
@@ -372,6 +432,20 @@ function App() {
   return (
     <>
       <main className="container" aria-hidden={showFullDiskAccessOverlay || isPreferencesOpen}>
+        <MenuBar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          onFocusSearch={focusAndSelectSearchInput}
+          onClearSearch={clearSearch}
+          caseSensitive={caseSensitive}
+          onToggleCaseSensitive={() => updateSearchParams({ caseSensitive: !caseSensitive })}
+          directoryScopeOpen={directoryScopeOpen}
+          onToggleDirectoryScope={toggleDirectoryScope}
+          showStatusBar={showStatusBar}
+          onToggleStatusBar={() => setShowStatusBar((visible) => !visible)}
+          onOpenPreferences={openPreferences}
+          onRequestRescan={requestRescan}
+        />
         <SearchBar
           inputRef={searchInputRef}
           placeholder={searchPlaceholder}
@@ -431,7 +505,8 @@ function App() {
             />
           )}
         </div>
-        <StatusBar
+        {showStatusBar && (
+          <StatusBar
           scannedFiles={scannedFiles}
           processedEvents={processedEvents}
           lifecycleState={lifecycleState}
@@ -441,7 +516,8 @@ function App() {
           onTabChange={onTabChange}
           onRequestRescan={requestRescan}
           rescanErrorCount={rescanErrors}
-        />
+          />
+        )}
       </main>
       <PreferencesOverlay
         open={isPreferencesOpen}

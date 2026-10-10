@@ -264,7 +264,7 @@ describe('App search result keyboard navigation', () => {
     });
   });
 
-  it('selects the first result and blurs the search input when ArrowDown reaches the history tail', () => {
+  it('selects the first result and blurs the search input on ArrowDown', () => {
     render(<App />);
 
     const input = screen.getByTestId('search-input');
@@ -283,7 +283,7 @@ describe('App search result keyboard navigation', () => {
       });
     });
 
-    expect(mocks.navigateSearchHistory).toHaveBeenCalledWith('newer');
+    expect(mocks.navigateSearchHistory).not.toHaveBeenCalled();
     expect(mocks.selectSingleRow).toHaveBeenCalledWith(0);
     expect(document.activeElement).not.toBe(input);
   });

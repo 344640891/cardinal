@@ -5,11 +5,11 @@ import type { SortKey, SortState } from '../types/sort';
 import { useTranslation } from 'react-i18next';
 
 const columns: Array<{ key: ColumnKey; labelKey: string; className: string }> = [
-  { key: 'filename', labelKey: 'columns.filename', className: 'filename-text' },
+  { key: 'filename', labelKey: 'columns.name', className: 'filename-text' },
   { key: 'path', labelKey: 'columns.path', className: 'path-text' },
   { key: 'size', labelKey: 'columns.size', className: 'size-text' },
   { key: 'modified', labelKey: 'columns.modified', className: 'mtime-text' },
-  { key: 'created', labelKey: 'columns.created', className: 'ctime-text' },
+  { key: 'created', labelKey: 'columns.type', className: 'ctime-text' },
 ];
 
 const sortableColumns: Record<ColumnKey, SortKey> = {
@@ -40,7 +40,9 @@ export const ColumnHeader = forwardRef<HTMLDivElement, ColumnHeaderProps>(
       <div ref={ref} className="header-row-container">
         <div className="header-row columns" onContextMenu={onContextMenu}>
           {columns.map(({ key, labelKey, className }) => {
-            const label = t(labelKey);
+            const label = t(labelKey, {
+              defaultValue: key === 'filename' ? '名称' : key === 'created' ? '类型' : undefined,
+            });
             const sortKey = sortableColumns[key];
             const isActive = sortState?.key === sortKey;
             const indicatorClasses = ['sort-indicator'];

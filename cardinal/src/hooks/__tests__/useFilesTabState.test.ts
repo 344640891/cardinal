@@ -186,7 +186,8 @@ describe('useFilesTabState', () => {
   });
 
   it('handles Enter and history navigation keys on files tab', () => {
-    const { result } = renderFilesTabState();
+    const onNavigateFromSearchToResults = vi.fn();
+    const { result } = renderFilesTabState({ onNavigateFromSearchToResults });
 
     const enterPreventDefault = vi.fn();
     act(() => {
@@ -206,7 +207,8 @@ describe('useFilesTabState', () => {
     });
     queueSearch.mock.calls[0][1]?.onSearchCommitted?.();
     expect(handleInputChange).toHaveBeenCalledWith('enter-query');
-    expect(enterPreventDefault).not.toHaveBeenCalled();
+    expect(enterPreventDefault).toHaveBeenCalledTimes(1);
+    expect(onNavigateFromSearchToResults).toHaveBeenCalledWith(true);
 
     queueSearch.mockClear();
     navigate.mockReturnValueOnce('history-query');
@@ -227,7 +229,7 @@ describe('useFilesTabState', () => {
     expect(queueSearch).toHaveBeenCalledWith('history-query');
   });
 
-  it('ignores history navigation when modifiers are pressed or no history entry exists', () => {
+  it('ignores result navigation when ArrowDown has modifiers', () => {
     const { result } = renderFilesTabState();
     const preventDefault = vi.fn();
 
@@ -257,11 +259,11 @@ describe('useFilesTabState', () => {
       } as unknown as ReactKeyboardEvent<HTMLInputElement>);
     });
     expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledWith('newer');
+    expect(navigate).not.toHaveBeenCalled();
     expect(queueSearch).not.toHaveBeenCalled();
   });
 
-  it('moves from the current query to results when ArrowDown reaches the history tail', () => {
+  it('moves directly to the first result on ArrowDown', () => {
     const onNavigateFromSearchToResults = vi.fn();
     const { result } = renderFilesTabState({ onNavigateFromSearchToResults });
     const preventDefault = vi.fn();
@@ -279,12 +281,12 @@ describe('useFilesTabState', () => {
     });
 
     expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledWith('newer');
-    expect(onNavigateFromSearchToResults).toHaveBeenCalledTimes(1);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(onNavigateFromSearchToResults).toHaveBeenCalledWith();
     expect(queueSearch).not.toHaveBeenCalled();
   });
 
-  it('uses newer history entries before moving ArrowDown into results', () => {
+  it('does not use search history when ArrowDown moves to results', () => {
     const onNavigateFromSearchToResults = vi.fn();
     navigate.mockReturnValueOnce('newer-query');
     const { result } = renderFilesTabState({ onNavigateFromSearchToResults });
@@ -303,9 +305,9 @@ describe('useFilesTabState', () => {
     });
 
     expect(preventDefault).toHaveBeenCalledTimes(1);
-    expect(navigate).toHaveBeenCalledWith('newer');
-    expect(queueSearch).toHaveBeenCalledWith('newer-query');
-    expect(onNavigateFromSearchToResults).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(queueSearch).not.toHaveBeenCalled();
+    expect(onNavigateFromSearchToResults).toHaveBeenCalledWith();
   });
 
   it('does not move into results when ArrowDown has modifiers', () => {

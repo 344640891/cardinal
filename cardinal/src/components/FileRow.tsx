@@ -13,6 +13,7 @@ type FileRowProps = {
   style?: CSSProperties;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>, path: string, rowIndex: number) => void;
   onOpen?: (path: string) => void;
+  onRevealInFinder?: (path: string) => void;
   onSelect: (
     rowIndex: number,
     options: { isShift: boolean; isMeta: boolean; isCtrl: boolean },
@@ -29,6 +30,7 @@ export const FileRow = memo(function FileRow({
   style,
   onContextMenu,
   onOpen,
+  onRevealInFinder,
   onSelect,
   isSelected = false,
   selectedPathsForDrag = [],
@@ -48,11 +50,17 @@ export const FileRow = memo(function FileRow({
 
   const metadata = item.metadata;
   const mtimeSec = metadata?.mtime ?? item.mtime;
-  const ctimeSec = metadata?.ctime ?? item.ctime;
   const sizeBytes = metadata?.size ?? item.size;
   const sizeText = metadata?.type !== 1 ? formatKB(sizeBytes) : null;
+  const typeText =
+    metadata?.type === 1
+      ? '文件夹'
+      : metadata?.type === 2
+        ? '符号链接'
+        : metadata?.type === 3
+          ? '其他'
+          : '文件';
   const mtimeText = formatTimestamp(mtimeSec);
-  const ctimeText = formatTimestamp(ctimeSec);
 
   const handleContextMenu = (e: ReactMouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -99,6 +107,14 @@ export const FileRow = memo(function FileRow({
     e.preventDefault();
     if (path && onOpen) {
       onOpen(path);
+    }
+  };
+
+  const handlePathDoubleClick = (e: ReactMouseEvent<HTMLSpanElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (directoryPath && onRevealInFinder) {
+      onRevealInFinder(directoryPath);
     }
   };
 
@@ -162,12 +178,16 @@ export const FileRow = memo(function FileRow({
         />
       </div>
       {/* Directory column renders the parent path (the filename column already shows the leaf). */}
-      <span className="path-text" title={directoryPath}>
+      <span
+        className="path-text"
+        title={directoryPath}
+        onDoubleClick={handlePathDoubleClick}
+      >
         {directoryPath}
       </span>
       <span className={`size-text ${!sizeText ? 'muted' : ''}`}>{sizeText || '—'}</span>
       <span className={`mtime-text ${!mtimeText ? 'muted' : ''}`}>{mtimeText || '—'}</span>
-      <span className={`ctime-text ${!ctimeText ? 'muted' : ''}`}>{ctimeText || '—'}</span>
+      <span className="ctime-text type-text">{typeText}</span>
     </div>
   );
 });
