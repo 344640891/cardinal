@@ -51,3 +51,9 @@ camino = "1.2.1"
 default = []
 # https://v2.tauri.app/develop/debug/#enable-devtools-feature
 dev = ["tauri/devtools"]
+
+[patch.crates-io]
+# Tauri's build-time cssparser dependency still resolves phf 0.10, whose
+# proc-macro-hack integration is incompatible with current Rust toolchains.
+phf = { path = "../../vendor/phf" }
+phf_macros = { path = "../../vendor/phf_macros" }

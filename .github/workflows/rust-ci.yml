@@ -137,3 +137,66 @@ jobs:
 
       - name: Run ${{ matrix.name }}
         run: ${{ matrix.command }}
+
+  macos-bundle:
+    name: macOS application bundle
+    runs-on: macos-14
+    if: startsWith(github.ref, 'refs/tags/V') || github.event_name == 'workflow_dispatch'
+    env:
+      RUSTUP_TOOLCHAIN: ${{ env.RUST_TOOLCHAIN }}
+    defaults:
+      run:
+        working-directory: cardinal
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: cardinal/package-lock.json
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Cache cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cardinal/src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build macOS release binary
+        run: cargo build --manifest-path src-tauri/Cargo.toml --release --features tauri/custom-protocol --locked
+
+      - name: Bundle macOS disk image
+        run: npm run tauri bundle -- --bundles dmg --ci --no-sign --features tauri/custom-protocol
+
+      - name: Collect macOS artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_root="src-tauri/target/release/bundle/dmg"
+          artifact_root="$GITHUB_WORKSPACE/cardinal-artifacts"
+          mkdir -p "$artifact_root"
+
+          find "$bundle_root" -type f -name '*.dmg' -exec cp {} "$artifact_root/" \;
+
+          test -n "$(find "$artifact_root" -type f -print -quit)"
+          find "$artifact_root" -type f -print
+
+      - name: Upload macOS application artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardinal-macos-${{ github.ref_name }}
+          path: cardinal-artifacts/*
+          if-no-files-found: error
