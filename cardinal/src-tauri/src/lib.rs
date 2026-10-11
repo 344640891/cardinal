@@ -101,12 +101,11 @@ pub fn run() -> Result<()> {
 
             match event {
                 WindowEvent::Focused(true) => {
-                    SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
                     window_has_been_focused_for_event.store(true, Ordering::Relaxed);
                     let _ = update_window_state_tx_for_window.try_send(());
                 }
                 WindowEvent::Focused(false) => {
-                    if SUPPRESS_NEXT_FOCUS_LOSS.load(Ordering::Relaxed) {
+                    if SUPPRESS_NEXT_FOCUS_LOSS.swap(false, Ordering::Relaxed) {
                         return;
                     }
 
