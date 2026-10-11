@@ -88,8 +88,16 @@ pub fn run() -> Result<()> {
             }
 
             match event {
-                WindowEvent::Focused(_) => {
+                WindowEvent::Focused(true) => {
                     let _ = update_window_state_tx_for_window.try_send(());
+                }
+                WindowEvent::Focused(false) => {
+                    if let Some(main_window) = window.get_webview_window("main") {
+                        if hide_window(&main_window) {
+                            let _ = update_window_state_tx_for_window.try_send(());
+                            info!("Main window hidden after losing focus");
+                        }
+                    }
                 }
                 WindowEvent::CloseRequested { api, .. } => {
                     if EXIT_REQUESTED.load(Ordering::Relaxed) {

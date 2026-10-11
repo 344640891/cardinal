@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { RefObject } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import type { StatusTabKey } from '../components/StatusBar';
 import {
   subscribeLifecycleState,
@@ -10,6 +11,8 @@ import {
 } from '../runtime/tauriEventRuntime';
 import type { AppLifecycleStatus, StatusBarUpdatePayload } from '../types/ipc';
 import { useStableEvent } from './useStableEvent';
+
+const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
 type QueueSearchOptions = {
   immediate?: boolean;
@@ -92,6 +95,26 @@ export function useAppWindowListeners({
     }
     document.documentElement.dataset.windowFocused = isWindowFocused ? 'true' : 'false';
   }, [isWindowFocused]);
+
+  useEffect(() => {
+    if (!isTauriRuntime) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      event.preventDefault();
+      void invoke('hide_main_window').catch((error) => {
+        console.error('Failed to hide main window', error);
+      });
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
 
   const handleWindowDragDrop = useStableEvent((event: WindowDragDropEvent) => {
     const payload = event.payload;

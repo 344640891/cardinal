@@ -1,9 +1,12 @@
+import { setTheme } from '@tauri-apps/api/app';
+
 export type ThemePreference = 'system' | 'light' | 'dark';
 
 const THEME_STORAGE_KEY = 'cardinal.theme';
 
 const isBrowser = typeof window !== 'undefined';
 const isDocumentAvailable = typeof document !== 'undefined';
+const isTauriRuntime = isBrowser && '__TAURI_INTERNALS__' in window;
 
 const isThemePreference = (value: string | null): value is ThemePreference =>
   value === 'system' || value === 'light' || value === 'dark';
@@ -32,7 +35,15 @@ const clearStoredPreference = (): void => {
   window.localStorage.removeItem(THEME_STORAGE_KEY);
 };
 
+const syncNativeTheme = (preference: ThemePreference): void => {
+  if (!isTauriRuntime) return;
+
+  void setTheme(preference === 'system' ? null : preference).catch(() => undefined);
+};
+
 const applyPreferenceToDocument = (preference: ThemePreference): void => {
+  syncNativeTheme(preference);
+
   if (!isDocumentAvailable) {
     return;
   }

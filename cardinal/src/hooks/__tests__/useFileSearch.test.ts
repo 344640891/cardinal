@@ -48,6 +48,10 @@ const mockSearchCancelled = () => {
 const renderReadySearchHook = async () => {
   const rendered = renderHook(() => useFileSearch());
   await waitFor(() => expect(rendered.result.current.state.initialFetchCompleted).toBe(true));
+  await act(async () => {
+    rendered.result.current.queueSearch('', { immediate: true });
+    await Promise.resolve();
+  });
   return rendered;
 };
 
@@ -58,6 +62,16 @@ describe('useFileSearch', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('starts idle without running an empty search', async () => {
+    mockSearchSuccess([1, 2, 3] as SlabIndex[]);
+    const { result } = renderHook(() => useFileSearch());
+
+    await waitFor(() => expect(result.current.state.initialFetchCompleted).toBe(true));
+
+    expect(mockedInvoke).not.toHaveBeenCalledWith('search', expect.anything());
+    expect(result.current.state.results).toEqual([]);
   });
 
   it('reuses backend results array without copying', async () => {

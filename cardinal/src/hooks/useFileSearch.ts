@@ -80,7 +80,8 @@ const initialSearchState: SearchState = {
   currentDirectoryQuery: '',
   highlightTerms: [],
   showLoadingUI: false,
-  initialFetchCompleted: false,
+  // The quick-search window starts idle; an empty query must not enumerate the index.
+  initialFetchCompleted: true,
   durationMs: null,
   resultCount: 0,
   searchError: null,
@@ -403,7 +404,6 @@ export function useFileSearch(): UseFileSearchResult {
 
   useEffect(() => {
     if (!hasInitialSearchRunRef.current) {
-      void handleSearch({ query: '' });
       return;
     }
 

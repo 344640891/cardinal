@@ -34,6 +34,8 @@ import { useAppWindowListeners } from './hooks/useAppWindowListeners';
 import { useFilesTabEffects } from './hooks/useFilesTabEffects';
 import { useFilesTabState } from './hooks/useFilesTabState';
 
+const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+
 function App() {
   const {
     state,
@@ -431,7 +433,10 @@ function App() {
 
   return (
     <>
-      <main className="container" aria-hidden={showFullDiskAccessOverlay || isPreferencesOpen}>
+      <main
+        className={`container${isTauriRuntime ? ' container--native' : ''}`}
+        aria-hidden={showFullDiskAccessOverlay || isPreferencesOpen}
+      >
         <MenuBar
           activeTab={activeTab}
           onTabChange={onTabChange}

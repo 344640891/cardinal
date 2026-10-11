@@ -42,6 +42,12 @@ async function buildAppMenu(): Promise<void> {
     accelerator: 'CmdOrCtrl+,',
     action: openPreferences,
   });
+  const hideItem = await MenuItem.new({
+    id: 'menu.hide',
+    text: '隐藏窗口',
+    accelerator: 'Esc',
+    action: () => void invoke('hide_main_window'),
+  });
   const quitItem = await PredefinedMenuItem.new({
     item: 'Quit',
     text: menuText('menu.quit', `退出 ${name}`),
@@ -49,7 +55,7 @@ async function buildAppMenu(): Promise<void> {
   const fileSubmenu = await Submenu.new({
     id: 'menu.file',
     text: menuText('menu.file', '文件(F)'),
-    items: [newWindowItem, await separator(), preferencesItem, await separator(), quitItem],
+    items: [newWindowItem, await separator(), preferencesItem, hideItem, await separator(), quitItem],
   });
 
   const editSubmenu = await Submenu.new({
