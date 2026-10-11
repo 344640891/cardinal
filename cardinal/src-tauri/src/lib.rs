@@ -28,7 +28,10 @@ use search_cache::{SearchCache, SlabIndex};
 use search_cancel::CancellationToken;
 use std::{
     path::{Path, PathBuf},
-    sync::{Arc, Once, atomic::{AtomicBool, Ordering}},
+    sync::{
+        Arc, Once,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Duration,
 };
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
@@ -38,6 +41,7 @@ use window_controls::{activate_window, hide_window};
 
 static DB_PATH: OnceCell<PathBuf> = OnceCell::new();
 pub(crate) static LOGIC_START: OnceCell<Sender<LogicStartConfig>> = OnceCell::new();
+pub(crate) static SUPPRESS_NEXT_FOCUS_LOSS: AtomicBool = AtomicBool::new(false);
 pub(crate) const DEFAULT_SYSTEM_IGNORE_PATH: &str = "/System/Volumes/Data";
 const FSE_LATENCY_SECS: f64 = 0.1;
 
@@ -71,6 +75,12 @@ pub fn run() -> Result<()> {
         .expect("LOGIC_START channel already initialized");
 
     let mut builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            window_controls::activate_main_window_impl(app);
+        }));
+    }
     #[cfg(not(feature = "dev"))]
     {
         builder = builder.plugin(tauri_plugin_prevent_default::init());
@@ -91,10 +101,15 @@ pub fn run() -> Result<()> {
 
             match event {
                 WindowEvent::Focused(true) => {
+                    SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
                     window_has_been_focused_for_event.store(true, Ordering::Relaxed);
                     let _ = update_window_state_tx_for_window.try_send(());
                 }
                 WindowEvent::Focused(false) => {
+                    if SUPPRESS_NEXT_FOCUS_LOSS.load(Ordering::Relaxed) {
+                        return;
+                    }
+
                     if !window_has_been_focused_for_event.load(Ordering::Relaxed) {
                         return;
                     }

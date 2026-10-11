@@ -1,5 +1,5 @@
 use crate::{
-    DEFAULT_SYSTEM_IGNORE_PATH, LOGIC_START, LogicStartConfig,
+    DEFAULT_SYSTEM_IGNORE_PATH, LOGIC_START, LogicStartConfig, SUPPRESS_NEXT_FOCUS_LOSS,
     lifecycle::load_app_state,
     quicklook::{
         QuickLookItemInput, close_preview_panel, toggle_preview_panel, update_preview_panel,
@@ -24,7 +24,7 @@ use search_cache::{
 };
 use search_cancel::CancellationToken;
 use serde::{Deserialize, Serialize};
-use std::{cell::LazyCell, process::Command};
+use std::{cell::LazyCell, process::Command, sync::atomic::Ordering};
 use tauri::{ActivationPolicy, AppHandle, State};
 use tracing::{error, info, warn};
 
@@ -482,6 +482,8 @@ pub async fn toggle_main_window(app: AppHandle) {
 
 #[tauri::command]
 pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) {
+    SUPPRESS_NEXT_FOCUS_LOSS.store(enabled, Ordering::Relaxed);
+
     let app_handle = app.clone();
     if let Err(e) = app.run_on_main_thread(move || {
         let policy = if enabled {
@@ -495,6 +497,7 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) {
         activate_main_window_impl(&app_handle);
     }) {
         error!("Failed to dispatch activation policy update: {e:?}");
+        SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
     }
 }
 
