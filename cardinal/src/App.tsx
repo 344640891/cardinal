@@ -25,7 +25,6 @@ import { useTranslation } from 'react-i18next';
 import { useFullDiskAccessPermission } from './hooks/useFullDiskAccessPermission';
 import type { DisplayState } from './components/StateDisplay';
 import { openResultPath } from './utils/openResultPath';
-import { revealResultPath } from './utils/revealResultPath';
 import { openPreferences } from './utils/openPreferences';
 import { useStableEvent } from './hooks/useStableEvent';
 import { useAppHotkeys } from './hooks/useAppHotkeys';
@@ -370,7 +369,6 @@ function App() {
           onContextMenu={handleRowContextMenu}
           onSelect={handleRowSelect}
           onOpen={openResultPath}
-          onRevealInFinder={revealResultPath}
         />
       );
     },

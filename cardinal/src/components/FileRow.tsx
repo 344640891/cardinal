@@ -13,7 +13,6 @@ type FileRowProps = {
   style?: CSSProperties;
   onContextMenu?: (event: ReactMouseEvent<HTMLDivElement>, path: string, rowIndex: number) => void;
   onOpen?: (path: string) => void;
-  onRevealInFinder?: (path: string) => void;
   onSelect: (
     rowIndex: number,
     options: { isShift: boolean; isMeta: boolean; isCtrl: boolean },
@@ -30,7 +29,6 @@ export const FileRow = memo(function FileRow({
   style,
   onContextMenu,
   onOpen,
-  onRevealInFinder,
   onSelect,
   isSelected = false,
   selectedPathsForDrag = [],
@@ -113,8 +111,8 @@ export const FileRow = memo(function FileRow({
   const handlePathDoubleClick = (e: ReactMouseEvent<HTMLSpanElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (directoryPath && onRevealInFinder) {
-      onRevealInFinder(directoryPath);
+    if (directoryPath && onOpen) {
+      onOpen(directoryPath);
     }
   };
 

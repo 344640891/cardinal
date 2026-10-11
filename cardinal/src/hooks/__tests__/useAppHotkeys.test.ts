@@ -95,6 +95,7 @@ describe('useAppHotkeys', () => {
     expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/a');
     expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/b');
 
+    mockedOpenResultPath.mockClear();
     const revealEvent = new KeyboardEvent('keydown', {
       key: 'r',
       metaKey: true,
@@ -103,8 +104,8 @@ describe('useAppHotkeys', () => {
     act(() => {
       window.dispatchEvent(revealEvent);
     });
-    expect(mockedInvoke).toHaveBeenCalledWith('open_in_finder', { path: '/tmp/a' });
-    expect(mockedInvoke).toHaveBeenCalledWith('open_in_finder', { path: '/tmp/b' });
+    expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp');
+    expect(mockedOpenResultPath).toHaveBeenCalledTimes(2);
 
     const copyEvent = new KeyboardEvent('keydown', {
       key: 'c',
@@ -117,6 +118,22 @@ describe('useAppHotkeys', () => {
     expect(mockedInvoke).toHaveBeenCalledWith('copy_files_to_clipboard', {
       paths: ['/tmp/a', '/tmp/b'],
     });
+  });
+
+  it('opens selected results with Enter', () => {
+    renderHotkeys();
+
+    const enterEvent = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      cancelable: true,
+    });
+    act(() => {
+      window.dispatchEvent(enterEvent);
+    });
+
+    expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/a');
+    expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/b');
+    expect(enterEvent.defaultPrevented).toBe(true);
   });
 
   it('does not override native copy shortcuts inside editable fields', () => {

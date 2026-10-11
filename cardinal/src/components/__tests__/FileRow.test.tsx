@@ -69,17 +69,15 @@ describe('FileRow selection interactions', () => {
     });
   });
 
-  it('reveals the parent directory when the path cell is double-clicked', () => {
+  it('opens the parent directory when the path cell is double-clicked', () => {
     const onOpen = vi.fn();
-    const onRevealInFinder = vi.fn();
-    const { container } = renderRow({ onOpen, onRevealInFinder });
+    const { container } = renderRow({ onOpen });
     const pathCell = container.querySelector('.path-text');
 
     expect(pathCell).not.toBeNull();
     fireEvent.doubleClick(pathCell as HTMLElement);
 
-    expect(onRevealInFinder).toHaveBeenCalledWith('/tmp');
-    expect(onOpen).not.toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledWith('/tmp');
   });
 
   it('does not fire when a pending click turns into a drag gesture', () => {

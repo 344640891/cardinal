@@ -28,7 +28,7 @@ use search_cache::{SearchCache, SlabIndex};
 use search_cancel::CancellationToken;
 use std::{
     path::{Path, PathBuf},
-    sync::{Once, atomic::Ordering},
+    sync::{Arc, Once, atomic::{AtomicBool, Ordering}},
     time::Duration,
 };
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
@@ -76,6 +76,8 @@ pub fn run() -> Result<()> {
         builder = builder.plugin(tauri_plugin_prevent_default::init());
     }
     let update_window_state_tx_for_window = update_window_state_tx.clone();
+    let window_has_been_focused = Arc::new(AtomicBool::new(false));
+    let window_has_been_focused_for_event = Arc::clone(&window_has_been_focused);
     builder = builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_drag::init())
@@ -89,9 +91,14 @@ pub fn run() -> Result<()> {
 
             match event {
                 WindowEvent::Focused(true) => {
+                    window_has_been_focused_for_event.store(true, Ordering::Relaxed);
                     let _ = update_window_state_tx_for_window.try_send(());
                 }
                 WindowEvent::Focused(false) => {
+                    if !window_has_been_focused_for_event.load(Ordering::Relaxed) {
+                        return;
+                    }
+
                     if let Some(main_window) = window.get_webview_window("main") {
                         if hide_window(&main_window) {
                             let _ = update_window_state_tx_for_window.try_send(());

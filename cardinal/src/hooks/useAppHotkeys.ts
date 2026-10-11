@@ -8,6 +8,7 @@ import {
 } from '../runtime/tauriEventRuntime';
 import { hasModifierKey } from '../utils/keyboard';
 import { openResultPath } from '../utils/openResultPath';
+import { splitPath } from '../utils/path';
 import { useStableEvent } from './useStableEvent';
 
 type MoveSelectionOptions = {
@@ -78,7 +79,8 @@ export function useAppHotkeys({
     if (key === 'r' && selectedPaths.length > 0) {
       event.preventDefault();
       selectedPaths.forEach((path) => {
-        void invoke('open_in_finder', { path });
+        const directoryPath = splitPath(path).directory || path;
+        openResultPath(directoryPath);
       });
       return true;
     }
@@ -104,6 +106,16 @@ export function useAppHotkeys({
     const target = event.target as HTMLElement | null;
     if (isEditableTarget(target)) {
       return false;
+    }
+
+    if (event.key === 'Enter') {
+      if (selectedPaths.length === 0) {
+        return false;
+      }
+
+      event.preventDefault();
+      selectedPaths.forEach((path) => openResultPath(path));
+      return true;
     }
 
     const isSpaceKey = event.code === 'Space' || event.key === ' ';
