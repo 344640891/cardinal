@@ -224,6 +224,7 @@ function App() {
     closePreferences,
     cancelPreferences,
     trayIconEnabled,
+    autoHideOnFocusLoss,
     themePreference,
     language,
     defaultLanguage,
@@ -536,6 +537,7 @@ function App() {
         defaultSortThreshold={DEFAULT_SORTABLE_RESULT_THRESHOLD}
         onSortThresholdChange={setSortThreshold}
         trayIconEnabled={trayIconEnabled}
+        autoHideOnFocusLoss={autoHideOnFocusLoss}
         watchRoot={watchRoot ?? defaultWatchRoot}
         defaultWatchRoot={defaultWatchRoot}
         onWatchConfigChange={handleWatchConfigChange}

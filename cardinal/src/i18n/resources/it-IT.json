@@ -137,7 +137,10 @@
     "save": "Salva",
     "cancel": "Annulla",
     "reset": "Ripristina valori predefiniti",
-    "close": "Chiudi"
+    "close": "Chiudi",
+    "autoHideOnFocusLoss": {
+      "label": "Nascondi quando si perde lo stato attivo"
+    }
   },
   "language": {
     "label": "Lingua",

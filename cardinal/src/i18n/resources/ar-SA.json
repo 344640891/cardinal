@@ -137,7 +137,10 @@
     "save": "حفظ",
     "cancel": "إلغاء",
     "reset": "إعادة الإعدادات الافتراضية",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "autoHideOnFocusLoss": {
+      "label": "إخفاء عند فقدان التركيز"
+    }
   },
   "language": {
     "label": "اللغة",

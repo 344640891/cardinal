@@ -16,6 +16,7 @@ type PreferencesOverlayProps = {
   defaultLanguage: string;
   onSavePreferences: (next: {
     trayIconEnabled: boolean;
+    autoHideOnFocusLoss: boolean;
     theme: ThemePreference;
     language: string;
   }) => void;
@@ -23,6 +24,7 @@ type PreferencesOverlayProps = {
   defaultSortThreshold: number;
   onSortThresholdChange: (value: number) => void;
   trayIconEnabled: boolean;
+  autoHideOnFocusLoss: boolean;
   watchRoot: string;
   defaultWatchRoot: string;
   onWatchConfigChange: (next: {
@@ -49,6 +51,7 @@ export function PreferencesOverlay({
   defaultSortThreshold,
   onSortThresholdChange,
   trayIconEnabled,
+  autoHideOnFocusLoss,
   watchRoot,
   defaultWatchRoot,
   onWatchConfigChange,
@@ -65,6 +68,7 @@ export function PreferencesOverlay({
   const [themeInput, setThemeInput] = useState<ThemePreference>(themePreference);
   const [languageInput, setLanguageInput] = useState<string>(language);
   const [trayIconInput, setTrayIconInput] = useState(trayIconEnabled);
+  const [autoHideOnFocusLossInput, setAutoHideOnFocusLossInput] = useState(autoHideOnFocusLoss);
   const [watchRootInput, setWatchRootInput] = useState<string>(() => watchRoot);
   const [ignorePathsInput, setIgnorePathsInput] = useState<string>(() => ignorePaths.join('\n'));
   const [includePathsInput, setIncludePathsInput] = useState<string>(() => includePaths.join('\n'));
@@ -92,8 +96,9 @@ export function PreferencesOverlay({
     setThemeInput(themePreference);
     setLanguageInput(language);
     setTrayIconInput(trayIconEnabled);
+    setAutoHideOnFocusLossInput(autoHideOnFocusLoss);
     setThresholdInput(sortThreshold.toString());
-  }, [language, open, sortThreshold, themePreference, trayIconEnabled]);
+  }, [autoHideOnFocusLoss, language, open, sortThreshold, themePreference, trayIconEnabled]);
 
   useEffect(() => {
     if (!open) {
@@ -220,6 +225,7 @@ export function PreferencesOverlay({
     commitThreshold();
     onSavePreferences({
       trayIconEnabled: trayIconInput,
+      autoHideOnFocusLoss: autoHideOnFocusLossInput,
       theme: themeInput,
       language: languageInput,
     });
@@ -239,6 +245,7 @@ export function PreferencesOverlay({
     setThemeInput('system');
     setLanguageInput(defaultLanguage);
     setTrayIconInput(false);
+    setAutoHideOnFocusLossInput(true);
     setThresholdInput(defaultSortThreshold.toString());
     setWatchRootInput(defaultWatchRoot);
     setIgnorePathsInput(defaultIgnorePaths.join('\n'));
@@ -299,6 +306,21 @@ export function PreferencesOverlay({
                   checked={trayIconInput}
                   onChange={(event) => setTrayIconInput(event.target.checked)}
                   aria-label={t('preferences.trayIcon.label')}
+                />
+                <span className="preferences-switch__track" aria-hidden="true" />
+              </label>
+            </div>
+          </div>
+          <div className="preferences-row">
+            <p className="preferences-label">{t('preferences.autoHideOnFocusLoss.label')}</p>
+            <div className="preferences-control">
+              <label className="preferences-switch">
+                <input
+                  className="preferences-switch__input"
+                  type="checkbox"
+                  checked={autoHideOnFocusLossInput}
+                  onChange={(event) => setAutoHideOnFocusLossInput(event.target.checked)}
+                  aria-label={t('preferences.autoHideOnFocusLoss.label')}
                 />
                 <span className="preferences-switch__track" aria-hidden="true" />
               </label>

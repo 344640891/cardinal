@@ -29,6 +29,7 @@ const baseProps = {
   defaultSortThreshold: 100,
   onSortThresholdChange: vi.fn(),
   trayIconEnabled: false,
+  autoHideOnFocusLoss: true,
   onTrayIconEnabledChange: vi.fn(),
   watchRoot: '/old/root',
   defaultWatchRoot: '/default/root',

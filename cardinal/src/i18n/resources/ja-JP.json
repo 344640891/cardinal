@@ -137,7 +137,10 @@
     "save": "保存",
     "cancel": "キャンセル",
     "reset": "既定値に戻す",
-    "close": "閉じる"
+    "close": "閉じる",
+    "autoHideOnFocusLoss": {
+      "label": "フォーカスを失ったときに隠す"
+    }
   },
   "language": {
     "label": "言語",

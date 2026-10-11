@@ -137,7 +137,10 @@
     "save": "Kaydet",
     "cancel": "İptal",
     "reset": "Varsayılanlara döndür",
-    "close": "Kapat"
+    "close": "Kapat",
+    "autoHideOnFocusLoss": {
+      "label": "Odak kaybolduğunda gizle"
+    }
   },
   "language": {
     "label": "Dil",

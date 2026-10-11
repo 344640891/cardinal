@@ -1,6 +1,6 @@
 use crate::{
-    DEFAULT_SYSTEM_IGNORE_PATH, FOCUS_LOSS_HANDLING_STATE, LOGIC_START, LogicStartConfig,
-    SUPPRESS_NEXT_FOCUS_LOSS, TRAY_POLICY_GENERATION,
+    AUTO_HIDE_ON_FOCUS_LOSS, DEFAULT_SYSTEM_IGNORE_PATH, FOCUS_LOSS_HANDLING_STATE, LOGIC_START,
+    LogicStartConfig, SUPPRESS_NEXT_FOCUS_LOSS, TRAY_POLICY_GENERATION,
     lifecycle::load_app_state,
     quicklook::{
         QuickLookItemInput, close_preview_panel, toggle_preview_panel, update_preview_panel,
@@ -28,13 +28,7 @@ use search_cache::{
 };
 use search_cancel::CancellationToken;
 use serde::{Deserialize, Serialize};
-use std::{
-    cell::LazyCell,
-    process::Command,
-    sync::atomic::Ordering,
-    thread,
-    time::Duration,
-};
+use std::{cell::LazyCell, process::Command, sync::atomic::Ordering, thread, time::Duration};
 use tauri::{ActivationPolicy, AppHandle, State};
 use tracing::{error, info, warn};
 
@@ -543,6 +537,11 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) {
         error!("Failed to dispatch activation policy update: {e:?}");
         SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
     }
+}
+
+#[tauri::command]
+pub async fn set_auto_hide_on_focus_loss(enabled: bool) {
+    AUTO_HIDE_ON_FOCUS_LOSS.store(enabled, Ordering::Release);
 }
 
 #[tauri::command]

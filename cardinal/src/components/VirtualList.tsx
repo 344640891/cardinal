@@ -68,6 +68,11 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps>(funct
 
   // ----- data loader -----
   const { cache, ensureRangeLoaded } = useDataLoader(results, dataResultsVersion);
+  // Keep the imperative row lookup current even when the parent reads the ref during
+  // the same render that updates selection. The ref itself is stable, but the cache
+  // backing it changes as visible rows are hydrated asynchronously.
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
 
   // Virtualized height powers the scrollbar math
   const totalHeight = rowCount * rowHeight;
@@ -192,9 +197,9 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps>(funct
   const getItemByRowIndex = useCallback(
     (rowIndex: number) => {
       const slabIndex = results[rowIndex];
-      return slabIndex === undefined ? undefined : cache.get(slabIndex);
+      return slabIndex === undefined ? undefined : cacheRef.current.get(slabIndex);
     },
-    [cache, results],
+    [results],
   );
 
   // The frozen viewport can be dropped once every row in the active window has fresh data.

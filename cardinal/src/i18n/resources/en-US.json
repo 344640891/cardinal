@@ -137,7 +137,10 @@
     "save": "Save",
     "cancel": "Cancel",
     "reset": "Restore defaults",
-    "close": "Close"
+    "close": "Close",
+    "autoHideOnFocusLoss": {
+      "label": "Hide when focus is lost"
+    }
   },
   "language": {
     "label": "Language",

@@ -127,7 +127,10 @@
     "save": "सहेजें",
     "cancel": "रद्द करें",
     "reset": "डिफ़ॉल्ट पर लौटाएँ",
-    "close": "बंद करें"
+    "close": "बंद करें",
+    "autoHideOnFocusLoss": {
+      "label": "फ़ोकस हटने पर छिपाएँ"
+    }
   },
   "language": {
     "label": "भाषा",

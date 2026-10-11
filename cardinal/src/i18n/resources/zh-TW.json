@@ -136,7 +136,10 @@
     "save": "儲存",
     "cancel": "取消",
     "reset": "恢復預設設定",
-    "close": "關閉"
+    "close": "關閉",
+    "autoHideOnFocusLoss": {
+      "label": "失去焦點時自動隱藏"
+    }
   },
   "language": {
     "label": "語言",

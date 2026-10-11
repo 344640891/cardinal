@@ -137,7 +137,10 @@
     "save": "저장",
     "cancel": "취소",
     "reset": "기본값으로 복원",
-    "close": "닫기"
+    "close": "닫기",
+    "autoHideOnFocusLoss": {
+      "label": "포커스를 잃으면 숨기기"
+    }
   },
   "language": {
     "label": "언어",

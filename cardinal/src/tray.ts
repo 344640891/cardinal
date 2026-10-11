@@ -45,6 +45,12 @@ export async function setTrayEnabled(enabled: boolean): Promise<void> {
   await Promise.allSettled([current?.close(), TrayIcon.removeById(TRAY_ID)]);
 }
 
+export async function setAutoHideOnFocusLoss(enabled: boolean): Promise<void> {
+  await invoke('set_auto_hide_on_focus_loss', { enabled }).catch((error) => {
+    console.error('Failed to update focus-loss window policy', error);
+  });
+}
+
 async function createTray(): Promise<void> {
   const openItem = await MenuItem.new({
     id: 'tray.open',

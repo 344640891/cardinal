@@ -9,8 +9,9 @@ import {
   persistThemePreference,
   type ThemePreference,
 } from '../theme';
-import { setTrayEnabled } from '../tray';
+import { setAutoHideOnFocusLoss, setTrayEnabled } from '../tray';
 import { getStoredTrayIconEnabled, persistTrayIconEnabled } from '../trayIconPreference';
+import { getStoredAutoHideOnFocusLoss, persistAutoHideOnFocusLoss } from '../autoHidePreference';
 import { setWatchConfig } from '../utils/watchConfig';
 import type { FullDiskAccessStatus } from './useFullDiskAccessPermission';
 import { useIgnorePaths } from './useIgnorePaths';
@@ -25,6 +26,7 @@ type WatchConfigChangePayload = {
 
 export type SavePreferencesPayload = {
   trayIconEnabled: boolean;
+  autoHideOnFocusLoss: boolean;
   theme: ThemePreference;
   language: string;
 };
@@ -41,6 +43,7 @@ type UseAppPreferencesResult = {
   closePreferences: () => void;
   cancelPreferences: () => void;
   trayIconEnabled: boolean;
+  autoHideOnFocusLoss: boolean;
   setTrayIconEnabled: (enabled: boolean) => void;
   themePreference: ThemePreference;
   language: string;
@@ -76,6 +79,9 @@ export function useAppPreferences({
   const logicStartedRef = useRef(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [trayIconEnabled, setTrayIconEnabled] = useState<boolean>(() => getStoredTrayIconEnabled());
+  const [autoHideOnFocusLoss, setAutoHideOnFocusLossState] = useState<boolean>(() =>
+    getStoredAutoHideOnFocusLoss(),
+  );
   const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
     getStoredThemePreference(),
   );
@@ -86,6 +92,11 @@ export function useAppPreferences({
     persistTrayIconEnabled(trayIconEnabled);
     void setTrayEnabled(trayIconEnabled);
   }, [trayIconEnabled]);
+
+  useEffect(() => {
+    persistAutoHideOnFocusLoss(autoHideOnFocusLoss);
+    void setAutoHideOnFocusLoss(autoHideOnFocusLoss);
+  }, [autoHideOnFocusLoss]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -163,6 +174,7 @@ export function useAppPreferences({
   const savePreferences = useCallback(
     (next: SavePreferencesPayload) => {
       setTrayIconEnabled(next.trayIconEnabled);
+      setAutoHideOnFocusLossState(next.autoHideOnFocusLoss);
       setThemePreference(next.theme);
       persistThemePreference(next.theme);
       applyThemePreference(next.theme);
@@ -181,6 +193,7 @@ export function useAppPreferences({
     closePreferences,
     cancelPreferences,
     trayIconEnabled,
+    autoHideOnFocusLoss,
     setTrayIconEnabled,
     themePreference,
     language,

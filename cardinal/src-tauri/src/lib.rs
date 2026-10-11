@@ -16,8 +16,8 @@ use commands::{
     NodeInfoRequest, SearchJob, SearchState, WatchConfigUpdate, activate_main_window,
     close_quicklook, copy_files_to_clipboard, get_app_status, get_nodes_info, get_sorted_view,
     hide_main_window, normalize_watch_config, open_in_finder, open_path, search,
-    set_tray_activation_policy, set_watch_config, start_logic, toggle_main_window,
-    toggle_quicklook, trigger_rescan, update_icon_viewport, update_quicklook,
+    set_auto_hide_on_focus_loss, set_tray_activation_policy, set_watch_config, start_logic,
+    toggle_main_window, toggle_quicklook, trigger_rescan, update_icon_viewport, update_quicklook,
 };
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, bounded, unbounded};
 use lifecycle::{
@@ -46,6 +46,7 @@ pub(crate) static SUPPRESS_NEXT_FOCUS_LOSS: AtomicBool = AtomicBool::new(false);
 pub(crate) static FOCUS_LOSS_HANDLING_STATE: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TRAY_POLICY_GENERATION: AtomicU64 = AtomicU64::new(0);
 pub(crate) static WINDOW_HAS_BEEN_FOCUSED: AtomicBool = AtomicBool::new(false);
+pub(crate) static AUTO_HIDE_ON_FOCUS_LOSS: AtomicBool = AtomicBool::new(true);
 pub(crate) const DEFAULT_SYSTEM_IGNORE_PATH: &str = "/System/Volumes/Data";
 const FSE_LATENCY_SECS: f64 = 0.1;
 
@@ -126,6 +127,7 @@ pub fn run() -> Result<()> {
                     }
 
                     if !WINDOW_HAS_BEEN_FOCUSED.load(Ordering::Acquire)
+                        || !AUTO_HIDE_ON_FOCUS_LOSS.load(Ordering::Acquire)
                         || FOCUS_LOSS_HANDLING_STATE.load(Ordering::Acquire) & 1 == 0
                     {
                         return;
@@ -186,6 +188,7 @@ pub fn run() -> Result<()> {
             activate_main_window,
             toggle_main_window,
             set_tray_activation_policy,
+            set_auto_hide_on_focus_loss,
             copy_files_to_clipboard,
         ])
         .build(tauri::generate_context!())

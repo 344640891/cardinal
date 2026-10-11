@@ -6,7 +6,7 @@ import {
   getStoredThemePreference,
   persistThemePreference,
 } from '../../theme';
-import { setTrayEnabled } from '../../tray';
+import { setAutoHideOnFocusLoss, setTrayEnabled } from '../../tray';
 import { getStoredTrayIconEnabled, persistTrayIconEnabled } from '../../trayIconPreference';
 import { setWatchConfig } from '../../utils/watchConfig';
 import { getBrowserLanguage } from '../../i18n/config';
@@ -39,6 +39,7 @@ vi.mock('../../trayIconPreference', () => ({
 
 vi.mock('../../tray', () => ({
   setTrayEnabled: vi.fn(),
+  setAutoHideOnFocusLoss: vi.fn(),
 }));
 
 vi.mock('../../theme', () => ({
@@ -62,6 +63,7 @@ const mockedUseIncludePaths = vi.mocked(useIncludePaths);
 const mockedGetStoredTrayIconEnabled = vi.mocked(getStoredTrayIconEnabled);
 const mockedPersistTrayIconEnabled = vi.mocked(persistTrayIconEnabled);
 const mockedSetTrayEnabled = vi.mocked(setTrayEnabled);
+const mockedSetAutoHideOnFocusLoss = vi.mocked(setAutoHideOnFocusLoss);
 const mockedPersistThemePreference = vi.mocked(persistThemePreference);
 const mockedApplyThemePreference = vi.mocked(applyThemePreference);
 const mockedGetStoredThemePreference = vi.mocked(getStoredThemePreference);
@@ -96,6 +98,7 @@ describe('useAppPreferences', () => {
     mockedGetStoredTrayIconEnabled.mockReturnValue(true);
     mockedGetStoredThemePreference.mockReturnValue('dark');
     mockedSetTrayEnabled.mockResolvedValue(undefined);
+    mockedSetAutoHideOnFocusLoss.mockResolvedValue(undefined);
     mockedSetWatchConfig.mockResolvedValue(undefined);
     mockedInvoke.mockResolvedValue(undefined);
     mockedGetBrowserLanguage.mockReturnValue('fr-FR');
@@ -387,9 +390,11 @@ describe('useAppPreferences', () => {
 
     await waitFor(() => {
       expect(mockedSetTrayEnabled).toHaveBeenCalledWith(true);
+      expect(mockedSetAutoHideOnFocusLoss).toHaveBeenCalledWith(true);
     });
 
     mockedSetTrayEnabled.mockClear();
+    mockedSetAutoHideOnFocusLoss.mockClear();
     mockedPersistTrayIconEnabled.mockClear();
 
     act(() => {
@@ -408,6 +413,7 @@ describe('useAppPreferences', () => {
     });
 
     expect(mockedSetTrayEnabled).not.toHaveBeenCalled();
+    expect(mockedSetAutoHideOnFocusLoss).not.toHaveBeenCalled();
     expect(mockedPersistTrayIconEnabled).not.toHaveBeenCalled();
     expect(mockedPersistThemePreference).not.toHaveBeenCalled();
     expect(mockedApplyThemePreference).not.toHaveBeenCalled();
@@ -417,6 +423,7 @@ describe('useAppPreferences', () => {
     act(() => {
       result.current.savePreferences({
         trayIconEnabled: false,
+        autoHideOnFocusLoss: false,
         theme: 'system',
         language: 'fr-FR',
       });
@@ -424,6 +431,7 @@ describe('useAppPreferences', () => {
 
     await waitFor(() => {
       expect(mockedSetTrayEnabled).toHaveBeenCalledWith(false);
+      expect(mockedSetAutoHideOnFocusLoss).toHaveBeenCalledWith(false);
     });
     expect(mockedPersistTrayIconEnabled).toHaveBeenCalledWith(false);
     expect(mockedPersistThemePreference).toHaveBeenCalledWith('system');
