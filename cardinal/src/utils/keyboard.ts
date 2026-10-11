@@ -18,3 +18,7 @@ export const hasModifierKey = (
   event.ctrlKey ||
   event.metaKey ||
   (includeShift && event.shiftKey);
+
+/** Returns true while an input method editor is composing text. */
+export const isComposingKeyboardEvent = (event: KeyboardEvent): boolean =>
+  event.isComposing || event.keyCode === 229 || event.which === 229;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import type { StatusTabKey } from '../components/StatusBar';
@@ -11,6 +11,7 @@ import {
 } from '../runtime/tauriEventRuntime';
 import type { AppLifecycleStatus, StatusBarUpdatePayload } from '../types/ipc';
 import { useStableEvent } from './useStableEvent';
+import { isComposingKeyboardEvent } from '../utils/keyboard';
 
 const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -45,6 +46,7 @@ export function useAppWindowListeners({
   submitFilesQuery,
   setEventFilterQuery,
 }: UseAppWindowListenersOptions): UseAppWindowListenersResult {
+  const isComposingRef = useRef(false);
   const [isWindowFocused, setIsWindowFocused] = useState<boolean>(() => {
     if (typeof document === 'undefined') {
       return true;
@@ -101,8 +103,21 @@ export function useAppWindowListeners({
       return;
     }
 
+    const handleCompositionStart = (): void => {
+      isComposingRef.current = true;
+    };
+    const handleCompositionEnd = (): void => {
+      isComposingRef.current = false;
+    };
+
     const handleEscape = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') {
+        return;
+      }
+
+      // Escape confirms/cancels the current IME composition. Let the IME
+      // consume it instead of hiding the application window.
+      if (isComposingRef.current || isComposingKeyboardEvent(event)) {
         return;
       }
 
@@ -112,8 +127,16 @@ export function useAppWindowListeners({
       });
     };
 
+    window.addEventListener('compositionstart', handleCompositionStart, true);
+    window.addEventListener('compositionend', handleCompositionEnd, true);
+    window.addEventListener('compositioncancel', handleCompositionEnd, true);
     window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('compositionstart', handleCompositionStart, true);
+      window.removeEventListener('compositionend', handleCompositionEnd, true);
+      window.removeEventListener('compositioncancel', handleCompositionEnd, true);
+      window.removeEventListener('keydown', handleEscape);
+    };
   }, []);
 
   const handleWindowDragDrop = useStableEvent((event: WindowDragDropEvent) => {

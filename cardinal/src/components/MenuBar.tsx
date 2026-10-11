@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isComposingKeyboardEvent } from '../utils/keyboard';
 import type { StatusTabKey } from './StatusBar';
 
 type MenuBarProps = {
@@ -55,7 +56,7 @@ export function MenuBar({
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isComposingKeyboardEvent(event)) {
         setOpenMenu(null);
       }
     };

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isComposingKeyboardEvent } from '../utils/keyboard';
 import { createGlassScene } from '@glass-sdk/liquid-glass/dom';
 import '@glass-sdk/liquid-glass/styles.css';
 import type { ThemePreference } from '../theme';
@@ -79,7 +80,7 @@ export function PreferencesOverlay({
     }
 
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isComposingKeyboardEvent(event)) {
         (onCancel ?? onClose)();
         event.preventDefault();
       }

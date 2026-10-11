@@ -107,6 +107,12 @@ function App() {
     (waitForNextResults = false) => {
       if (waitForNextResults) {
         pendingFirstResultVersionRef.current = displayedResultsVersion;
+
+        // Enter submits the current query synchronously, while the result
+        // projection still contains the previous query's rows. Wait for the
+        // corresponding response before moving focus into the list so an
+        // empty response cannot focus a stale row.
+        return;
       }
 
       if (displayedResults.length === 0) {

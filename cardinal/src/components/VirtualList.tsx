@@ -199,7 +199,9 @@ export const VirtualList = forwardRef<VirtualListHandle, VirtualListProps>(funct
       const slabIndex = results[rowIndex];
       return slabIndex === undefined ? undefined : cacheRef.current.get(slabIndex);
     },
-    [results],
+    // `cacheRef` keeps the lookup current without changing its identity, so include the
+    // cache snapshot to invalidate memoized rows and viewport readiness after hydration.
+    [cache, results],
   );
 
   // The frozen viewport can be dropped once every row in the active window has fresh data.

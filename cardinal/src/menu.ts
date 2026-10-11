@@ -45,7 +45,6 @@ async function buildAppMenu(): Promise<void> {
   const hideItem = await MenuItem.new({
     id: 'menu.hide',
     text: '隐藏窗口',
-    accelerator: 'Esc',
     action: () => void invoke('hide_main_window'),
   });
   const quitItem = await PredefinedMenuItem.new({
