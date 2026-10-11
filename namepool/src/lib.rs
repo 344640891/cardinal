@@ -3,7 +3,10 @@ use core::str;
 use parking_lot::Mutex;
 use regex::Regex;
 use search_cancel::CancellationToken;
-use std::collections::BTreeSet;
+use std::{
+    collections::BTreeSet,
+    ops::Bound::{Included, Unbounded},
+};
 
 pub struct NamePool {
     inner: Mutex<BTreeSet<Box<str>>>,
@@ -94,11 +97,20 @@ impl NamePool {
         cancellation_token: CancellationToken,
     ) -> Option<BTreeSet<&'pool str>> {
         let mut result = BTreeSet::new();
-        for (i, x) in self.inner.lock().iter().enumerate() {
+        // Names are kept in a sorted set, so all names with this prefix form
+        // one contiguous range. This avoids scanning unrelated names for the
+        // common as-you-type prefix query.
+        for (i, x) in self
+            .inner
+            .lock()
+            .range::<str, _>((Included(prefix), Unbounded))
+            .enumerate()
+        {
             cancellation_token.is_cancelled_sparse(i)?;
-            if x.starts_with(prefix) {
-                result.insert(unsafe { str::from_raw_parts(x.as_ptr(), x.len()) });
+            if !x.starts_with(prefix) {
+                break;
             }
+            result.insert(unsafe { str::from_raw_parts(x.as_ptr(), x.len()) });
         }
 
         Some(result)
@@ -128,11 +140,9 @@ impl NamePool {
         cancellation_token: CancellationToken,
     ) -> Option<BTreeSet<&'pool str>> {
         let mut result = BTreeSet::new();
-        for (i, x) in self.inner.lock().iter().enumerate() {
-            cancellation_token.is_cancelled_sparse(i)?;
-            if &**x == exact {
-                result.insert(unsafe { str::from_raw_parts(x.as_ptr(), x.len()) });
-            }
+        if let Some(x) = self.inner.lock().get::<str>(exact) {
+            cancellation_token.is_cancelled()?;
+            result.insert(unsafe { str::from_raw_parts(x.as_ptr(), x.len()) });
         }
         Some(result)
     }
@@ -507,6 +517,22 @@ mod tests {
         let prefix = "nonexistent";
         let result = prefix_search(&pool, prefix);
         assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_search_prefix_stops_at_sorted_range_boundary() {
+        let pool = NamePool::new();
+        pool.push("foo");
+        pool.push("foobar");
+        pool.push("fop");
+        pool.push("foz");
+
+        let result = prefix_search(&pool, "foo");
+        assert_eq!(result.len(), 2);
+        assert!(result.contains("foo"));
+        assert!(result.contains("foobar"));
+        assert!(!result.contains("fop"));
+        assert!(!result.contains("foz"));
     }
 
     #[test]

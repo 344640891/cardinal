@@ -3,7 +3,12 @@ import { invoke } from '@tauri-apps/api/core';
 import type { i18n as I18nInstance } from 'i18next';
 import { OPEN_PREFERENCES_EVENT } from '../constants/appEvents';
 import { getBrowserLanguage } from '../i18n/config';
-import { applyThemePreference, persistThemePreference } from '../theme';
+import {
+  applyThemePreference,
+  getStoredThemePreference,
+  persistThemePreference,
+  type ThemePreference,
+} from '../theme';
 import { setTrayEnabled } from '../tray';
 import { getStoredTrayIconEnabled, persistTrayIconEnabled } from '../trayIconPreference';
 import { setWatchConfig } from '../utils/watchConfig';
@@ -18,18 +23,29 @@ type WatchConfigChangePayload = {
   includePaths: string[];
 };
 
+export type SavePreferencesPayload = {
+  trayIconEnabled: boolean;
+  theme: ThemePreference;
+  language: string;
+};
+
 type UseAppPreferencesOptions = {
   fullDiskAccessStatus: FullDiskAccessStatus;
   isCheckingFullDiskAccess: boolean;
   refreshSearchResults: () => void;
-  i18n: Pick<I18nInstance, 'changeLanguage'>;
+  i18n: Pick<I18nInstance, 'changeLanguage'> & { language?: string };
 };
 
 type UseAppPreferencesResult = {
   isPreferencesOpen: boolean;
   closePreferences: () => void;
+  cancelPreferences: () => void;
   trayIconEnabled: boolean;
   setTrayIconEnabled: (enabled: boolean) => void;
+  themePreference: ThemePreference;
+  language: string;
+  defaultLanguage: string;
+  savePreferences: (next: SavePreferencesPayload) => void;
   watchRoot: string;
   defaultWatchRoot: string;
   ignorePaths: string[];
@@ -60,6 +76,10 @@ export function useAppPreferences({
   const logicStartedRef = useRef(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [trayIconEnabled, setTrayIconEnabled] = useState<boolean>(() => getStoredTrayIconEnabled());
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() =>
+    getStoredThemePreference(),
+  );
+  const [language, setLanguage] = useState<string>(() => i18n.language ?? getBrowserLanguage());
   const [preferencesResetToken, setPreferencesResetToken] = useState(0);
 
   useEffect(() => {
@@ -137,21 +157,35 @@ export function useAppPreferences({
   );
 
   const handleResetPreferences = useCallback(() => {
-    setTrayIconEnabled(false);
-    persistThemePreference('system');
-    applyThemePreference('system');
-    const nextLanguage = getBrowserLanguage();
-    void i18n.changeLanguage(nextLanguage);
     setPreferencesResetToken((token) => token + 1);
-  }, [i18n]);
+  }, []);
+
+  const savePreferences = useCallback(
+    (next: SavePreferencesPayload) => {
+      setTrayIconEnabled(next.trayIconEnabled);
+      setThemePreference(next.theme);
+      persistThemePreference(next.theme);
+      applyThemePreference(next.theme);
+      setLanguage(next.language);
+      void i18n.changeLanguage(next.language);
+    },
+    [i18n],
+  );
 
   const closePreferences = useCallback(() => setIsPreferencesOpen(false), []);
+
+  const cancelPreferences = useCallback(() => setIsPreferencesOpen(false), []);
 
   return {
     isPreferencesOpen,
     closePreferences,
+    cancelPreferences,
     trayIconEnabled,
     setTrayIconEnabled,
+    themePreference,
+    language,
+    defaultLanguage: getBrowserLanguage(),
+    savePreferences,
     watchRoot,
     defaultWatchRoot,
     ignorePaths,

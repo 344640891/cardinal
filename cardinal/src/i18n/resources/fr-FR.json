@@ -135,6 +135,7 @@
       "label": "Limite de tri"
     },
     "save": "Enregistrer",
+    "cancel": "Annuler",
     "reset": "Rétablir les paramètres par défaut",
     "close": "Fermer"
   },

@@ -135,6 +135,7 @@
       "label": "Sortierlimit"
     },
     "save": "Speichern",
+    "cancel": "Abbrechen",
     "reset": "Standardwerte wiederherstellen",
     "close": "Schließen"
   },

@@ -135,6 +135,7 @@
       "label": "Límite de ordenación"
     },
     "save": "Guardar",
+    "cancel": "Cancelar",
     "reset": "Restablecer valores predeterminados",
     "close": "Cerrar"
   },

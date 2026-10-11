@@ -135,6 +135,7 @@
       "label": "Sorting limit"
     },
     "save": "Save",
+    "cancel": "Cancel",
     "reset": "Restore defaults",
     "close": "Close"
   },

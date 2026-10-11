@@ -151,15 +151,25 @@ const StatusBar = ({
         <div className="status-controls">
           <button
             type="button"
-            className="status-icon-button status-rescan-button"
+            className={`status-icon-button status-rescan-button${
+              lifecycleState === 'Updating' ? ' is-spinning' : ''
+            }`}
             onClick={onRequestRescan}
             disabled={rescanDisabled}
             title={rescanTooltip}
             aria-label={t('statusBar.aria.rescan')}
           >
-            <span className="status-rescan-icon" aria-hidden="true">
-              ↻
-            </span>
+            <svg
+              className="status-rescan-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.08a6 6 0 1 1-1.44-5.59L13 11h7V4z"
+              />
+            </svg>
             <span className="sr-only">{t('statusBar.aria.rescan')}</span>
           </button>
           <button

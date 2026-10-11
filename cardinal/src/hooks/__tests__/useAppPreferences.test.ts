@@ -1,7 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPEN_PREFERENCES_EVENT } from '../../constants/appEvents';
-import { applyThemePreference, persistThemePreference } from '../../theme';
+import {
+  applyThemePreference,
+  getStoredThemePreference,
+  persistThemePreference,
+} from '../../theme';
 import { setTrayEnabled } from '../../tray';
 import { getStoredTrayIconEnabled, persistTrayIconEnabled } from '../../trayIconPreference';
 import { setWatchConfig } from '../../utils/watchConfig';
@@ -39,6 +43,7 @@ vi.mock('../../tray', () => ({
 
 vi.mock('../../theme', () => ({
   applyThemePreference: vi.fn(),
+  getStoredThemePreference: vi.fn(),
   persistThemePreference: vi.fn(),
 }));
 
@@ -59,6 +64,7 @@ const mockedPersistTrayIconEnabled = vi.mocked(persistTrayIconEnabled);
 const mockedSetTrayEnabled = vi.mocked(setTrayEnabled);
 const mockedPersistThemePreference = vi.mocked(persistThemePreference);
 const mockedApplyThemePreference = vi.mocked(applyThemePreference);
+const mockedGetStoredThemePreference = vi.mocked(getStoredThemePreference);
 const mockedSetWatchConfig = vi.mocked(setWatchConfig);
 const mockedGetBrowserLanguage = vi.mocked(getBrowserLanguage);
 
@@ -88,6 +94,7 @@ describe('useAppPreferences', () => {
       defaultIncludePaths: [],
     });
     mockedGetStoredTrayIconEnabled.mockReturnValue(true);
+    mockedGetStoredThemePreference.mockReturnValue('dark');
     mockedSetTrayEnabled.mockResolvedValue(undefined);
     mockedSetWatchConfig.mockResolvedValue(undefined);
     mockedInvoke.mockResolvedValue(undefined);
@@ -400,6 +407,21 @@ describe('useAppPreferences', () => {
       result.current.handleResetPreferences();
     });
 
+    expect(mockedSetTrayEnabled).not.toHaveBeenCalled();
+    expect(mockedPersistTrayIconEnabled).not.toHaveBeenCalled();
+    expect(mockedPersistThemePreference).not.toHaveBeenCalled();
+    expect(mockedApplyThemePreference).not.toHaveBeenCalled();
+    expect(changeLanguage).not.toHaveBeenCalled();
+    expect(result.current.preferencesResetToken).toBe(initialToken + 1);
+
+    act(() => {
+      result.current.savePreferences({
+        trayIconEnabled: false,
+        theme: 'system',
+        language: 'fr-FR',
+      });
+    });
+
     await waitFor(() => {
       expect(mockedSetTrayEnabled).toHaveBeenCalledWith(false);
     });
@@ -407,6 +429,44 @@ describe('useAppPreferences', () => {
     expect(mockedPersistThemePreference).toHaveBeenCalledWith('system');
     expect(mockedApplyThemePreference).toHaveBeenCalledWith('system');
     expect(changeLanguage).toHaveBeenCalledWith('fr-FR');
-    expect(result.current.preferencesResetToken).toBe(initialToken + 1);
+  });
+
+  it('does not apply staged preference changes when preferences are cancelled', async () => {
+    const { result } = renderHook(() =>
+      useAppPreferences({
+        fullDiskAccessStatus: 'denied',
+        isCheckingFullDiskAccess: false,
+        refreshSearchResults,
+        i18n: { changeLanguage, language: 'en-US' },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(mockedSetTrayEnabled).toHaveBeenCalledWith(true);
+    });
+    mockedSetTrayEnabled.mockClear();
+    mockedPersistTrayIconEnabled.mockClear();
+    mockedPersistThemePreference.mockClear();
+    mockedApplyThemePreference.mockClear();
+    changeLanguage.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new Event(OPEN_PREFERENCES_EVENT));
+      result.current.handleResetPreferences();
+    });
+
+    expect(mockedSetTrayEnabled).not.toHaveBeenCalled();
+    expect(mockedPersistThemePreference).not.toHaveBeenCalled();
+    expect(mockedApplyThemePreference).not.toHaveBeenCalled();
+    expect(changeLanguage).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.cancelPreferences();
+    });
+
+    expect(result.current.isPreferencesOpen).toBe(false);
+    expect(mockedPersistThemePreference).not.toHaveBeenCalled();
+    expect(mockedApplyThemePreference).not.toHaveBeenCalled();
+    expect(changeLanguage).not.toHaveBeenCalled();
   });
 });

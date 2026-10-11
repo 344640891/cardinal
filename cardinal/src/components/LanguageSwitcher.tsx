@@ -4,17 +4,23 @@ import { LANGUAGE_OPTIONS, normalizeLanguageTag } from '../i18n/config';
 
 type LanguageSwitcherProps = {
   className: string;
+  language: string;
+  onLanguageChange: (language: string) => void;
 };
 
-const LanguageSwitcher = ({ className }: LanguageSwitcherProps): React.JSX.Element => {
-  const { t, i18n } = useTranslation();
+const LanguageSwitcher = ({
+  className,
+  language,
+  onLanguageChange,
+}: LanguageSwitcherProps): React.JSX.Element => {
+  const { t } = useTranslation();
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextLang = event.target.value;
-    void i18n.changeLanguage(nextLang);
+    onLanguageChange(nextLang);
   };
 
-  const currentCode = normalizeLanguageTag(i18n.language);
+  const currentCode = normalizeLanguageTag(language);
 
   return (
     <div className={className}>

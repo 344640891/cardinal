@@ -23,7 +23,7 @@ const mockedSubscribeWindowDragDrop = vi.mocked(subscribeWindowDragDrop);
 
 type HookProps = {
   activeTab: 'files' | 'events';
-  searchInputRef: RefObject<HTMLInputElement>;
+  searchInputRef: RefObject<HTMLInputElement | null>;
   focusAndSelectSearchInput: () => void;
   handleStatusUpdate: (scannedFiles: number, processedEvents: number, rescanErrors: number) => void;
   setLifecycleState: (status: 'Initializing' | 'Updating' | 'Ready') => void;

@@ -12,7 +12,9 @@ use hashbrown::HashSet;
 use jiff::{Timestamp, civil::Date, tz::TimeZone};
 use memchr::arch::all::rabinkarp;
 use query_segmentation::query_segmentation;
-use rayon::iter::{ParallelBridge, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator,
+};
 use regex::RegexBuilder;
 use search_cancel::CancellationToken;
 use std::{collections::BTreeSet, fs::File, io::Read, path::Path};
@@ -23,6 +25,13 @@ pub(crate) const CONTENT_BUFFER_BYTES: usize = 64 * 1024;
 /// When the base set exceeds this size, Spotlight's indexed search is faster than
 /// reading xattr metadata for each file individually.
 const TAG_FILTER_MDFIND_THRESHOLD: usize = 10000;
+
+/// Parallel matching pays off once a path expansion contains enough child
+/// candidates to amortize Rayon scheduling overhead.
+const CHILD_MATCH_PARALLEL_THRESHOLD: usize = 2048;
+/// Parallelizing across parent directories avoids scheduling work for the
+/// common case where each directory only has a small number of children.
+const PARENT_MATCH_PARALLEL_THRESHOLD: usize = 64;
 
 impl SearchCache {
     pub(crate) fn evaluate_expr(
@@ -275,6 +284,59 @@ impl SearchCache {
         matcher: &SegmentMatcherConcrete,
         token: CancellationToken,
     ) -> Option<Vec<SlabIndex>> {
+        let parent_count = parents.len();
+        let max_children = parents
+            .iter()
+            .map(|&node| self.file_nodes[node].children.len())
+            .max()
+            .unwrap_or_default();
+        if parent_count == 1 && max_children >= CHILD_MATCH_PARALLEL_THRESHOLD {
+            let node = parents[0];
+            let mut child_matches = self.file_nodes[node]
+                .children
+                .par_iter()
+                .enumerate()
+                .filter_map(|(i, &child)| {
+                    token.is_cancelled_sparse(i)?;
+                    let name = self.file_nodes[child].name();
+                    matcher.matches(name).then_some((name, child))
+                })
+                .collect::<Vec<_>>();
+            token.is_cancelled()?;
+            child_matches.sort_unstable_by_key(|(name, _)| *name);
+            return Some(child_matches.into_iter().map(|(_, index)| index).collect());
+        }
+        if parent_count >= PARENT_MATCH_PARALLEL_THRESHOLD {
+            // Rayon preserves the order of an indexed parallel iterator. Keep
+            // one result vector per parent so this remains equivalent to the
+            // existing depth/path ordering while matching parent child lists
+            // in parallel.
+            let per_parent: Vec<Option<Vec<SlabIndex>>> = parents
+                .par_iter()
+                .enumerate()
+                .map(|(i, &node)| {
+                    token.is_cancelled_sparse(i)?;
+                    let mut child_matches = self.file_nodes[node]
+                        .children
+                        .iter()
+                        .filter_map(|&child| {
+                            let name = self.file_nodes[child].name();
+                            matcher.matches(name).then_some((name, child))
+                        })
+                        .collect::<Vec<_>>();
+                    child_matches.sort_unstable_by_key(|(name, _)| *name);
+                    Some(child_matches.into_iter().map(|(_, index)| index).collect())
+                })
+                .collect();
+            token.is_cancelled()?;
+            let mut new_node_set = Vec::new();
+            for child_matches in per_parent {
+                new_node_set.extend(child_matches?);
+            }
+            token.is_cancelled()?;
+            return Some(new_node_set);
+        }
+
         let mut new_node_set = Vec::new();
         for (i, &node) in parents.iter().enumerate() {
             token.is_cancelled_sparse(i)?;

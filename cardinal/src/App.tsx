@@ -223,15 +223,18 @@ function App() {
   const {
     isPreferencesOpen,
     closePreferences,
+    cancelPreferences,
     trayIconEnabled,
-    setTrayIconEnabled,
+    themePreference,
+    language,
+    defaultLanguage,
+    savePreferences,
     watchRoot,
     defaultWatchRoot,
     ignorePaths,
     defaultIgnorePaths,
     includePaths,
     defaultIncludePaths,
-    preferencesResetToken,
     handleWatchConfigChange,
     handleResetPreferences,
   } = useAppPreferences({
@@ -292,8 +295,7 @@ function App() {
 
   useEffect(() => {
     const handleClearSearch = () => clearSearch();
-    const handleToggleCaseSensitive = () =>
-      updateSearchParams({ caseSensitive: !caseSensitive });
+    const handleToggleCaseSensitive = () => updateSearchParams({ caseSensitive: !caseSensitive });
     const handleToggleDirectoryScope = () => toggleDirectoryScope();
     const handleToggleStatusBar = () => setShowStatusBar((visible) => !visible);
     const handleShowFiles = () => onTabChange('files');
@@ -432,7 +434,7 @@ function App() {
   }`;
 
   return (
-    <>
+    <div className="cardinal-glass-scene">
       <main
         className={`container${isTauriRuntime ? ' container--native' : ''}`}
         aria-hidden={showFullDiskAccessOverlay || isPreferencesOpen}
@@ -512,26 +514,30 @@ function App() {
         </div>
         {showStatusBar && (
           <StatusBar
-          scannedFiles={scannedFiles}
-          processedEvents={processedEvents}
-          lifecycleState={lifecycleState}
-          searchDurationMs={durationMs}
-          resultCount={resultCount}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          onRequestRescan={requestRescan}
-          rescanErrorCount={rescanErrors}
+            scannedFiles={scannedFiles}
+            processedEvents={processedEvents}
+            lifecycleState={lifecycleState}
+            searchDurationMs={durationMs}
+            resultCount={resultCount}
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            onRequestRescan={requestRescan}
+            rescanErrorCount={rescanErrors}
           />
         )}
       </main>
       <PreferencesOverlay
         open={isPreferencesOpen}
         onClose={closePreferences}
+        onCancel={cancelPreferences}
+        themePreference={themePreference}
+        language={language}
+        defaultLanguage={defaultLanguage}
+        onSavePreferences={savePreferences}
         sortThreshold={sortThreshold}
         defaultSortThreshold={DEFAULT_SORTABLE_RESULT_THRESHOLD}
         onSortThresholdChange={setSortThreshold}
         trayIconEnabled={trayIconEnabled}
-        onTrayIconEnabledChange={setTrayIconEnabled}
         watchRoot={watchRoot ?? defaultWatchRoot}
         defaultWatchRoot={defaultWatchRoot}
         onWatchConfigChange={handleWatchConfigChange}
@@ -540,7 +546,6 @@ function App() {
         includePaths={includePaths}
         defaultIncludePaths={defaultIncludePaths}
         onReset={handleResetPreferences}
-        themeResetToken={preferencesResetToken}
       />
       {showFullDiskAccessOverlay && (
         <PermissionOverlay
@@ -553,7 +558,7 @@ function App() {
           actionLabel={openSettingsLabel}
         />
       )}
-    </>
+    </div>
   );
 }
 

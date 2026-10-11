@@ -1,15 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  applyThemePreference,
-  getStoredThemePreference,
-  persistThemePreference,
-  type ThemePreference,
-} from '../theme';
+import type { ThemePreference } from '../theme';
 
 type ThemeSwitcherProps = {
   className?: string;
-  resetToken?: number;
+  preference: ThemePreference;
+  onPreferenceChange: (preference: ThemePreference) => void;
 };
 
 type ThemeOption = {
@@ -24,23 +20,16 @@ const THEME_OPTIONS: ThemeOption[] = [
   { value: 'dark', icon: '🌙', labelKey: 'theme.options.dark' },
 ];
 
-const ThemeSwitcher = ({ className, resetToken }: ThemeSwitcherProps): React.JSX.Element => {
+const ThemeSwitcher = ({
+  className,
+  preference,
+  onPreferenceChange,
+}: ThemeSwitcherProps): React.JSX.Element => {
   const { t } = useTranslation();
-  const [preference, setPreference] = useState<ThemePreference>(() => getStoredThemePreference());
-
-  useEffect(() => {
-    persistThemePreference(preference);
-    applyThemePreference(preference);
-  }, [preference]);
-
-  useEffect(() => {
-    if (resetToken === undefined) return;
-    setPreference(getStoredThemePreference());
-  }, [resetToken]);
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextPreference = event.target.value as ThemePreference;
-    setPreference(nextPreference);
+    onPreferenceChange(nextPreference);
   };
 
   const activeOption =

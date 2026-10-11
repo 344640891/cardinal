@@ -734,6 +734,28 @@ fn test_trailing_globstar_performance_many_files() {
 }
 
 #[test]
+fn test_wide_direct_child_match_preserves_order() {
+    let tmp = TempDir::new("wide_direct_child_match").unwrap();
+    let root = tmp.path().join("large");
+    fs::create_dir(&root).unwrap();
+    for i in (0..2200).rev() {
+        fs::write(root.join(format!("file{i:04}.txt")), b"x").unwrap();
+    }
+
+    let mut cache = SearchCache::walk_fs(tmp.path());
+    let hits = cache.search("large/file*.txt").unwrap();
+    assert_eq!(hits.len(), 2200);
+
+    let names = hits
+        .iter()
+        .map(|index| cache.file_nodes[*index].name().to_string())
+        .collect::<Vec<_>>();
+    let mut sorted = names.clone();
+    sorted.sort_unstable();
+    assert_eq!(names, sorted, "parallel matching must preserve path order");
+}
+
+#[test]
 fn test_trailing_globstar_no_duplicates() {
     let tmp = TempDir::new("trailing_globstar_nodup").unwrap();
     fs::create_dir_all(tmp.path().join("foo/foo")).unwrap();

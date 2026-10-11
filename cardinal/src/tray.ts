@@ -1,14 +1,17 @@
 import { defaultWindowIcon } from '@tauri-apps/api/app';
 import { invoke } from '@tauri-apps/api/core';
+import { Image as TauriImage } from '@tauri-apps/api/image';
 import { Menu, MenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu';
 import { TrayIcon, type TrayIconOptions } from '@tauri-apps/api/tray';
 import i18n from './i18n/config';
 import { QUICK_LAUNCH_SHORTCUT } from './utils/globalShortcuts';
+import trayIconUrl from './assets/tray-icon.png?url';
 
 const TRAY_ID = 'cardinal.tray';
 
 let trayInitPromise: Promise<void> | null = null;
 let trayIcon: TrayIcon | null = null;
+let trayImagePromise: Promise<TauriImage | undefined> | null = null;
 
 export function initializeTray(): Promise<void> {
   if (!trayInitPromise) {
@@ -61,11 +64,45 @@ async function createTray(): Promise<void> {
   const options: TrayIconOptions = {
     id: TRAY_ID,
     tooltip: 'Cardinal',
-    icon: (await defaultWindowIcon()) ?? undefined,
+    icon: (await loadTrayImage()) ?? (await defaultWindowIcon()) ?? undefined,
+    iconAsTemplate: true,
     menu,
   };
 
   trayIcon = await TrayIcon.new(options);
+}
+
+async function loadTrayImage(): Promise<TauriImage | undefined> {
+  if (!trayImagePromise) {
+    trayImagePromise = createTrayImage().catch((error) => {
+      console.warn('Failed to load monochrome Cardinal tray icon', error);
+      return undefined;
+    });
+  }
+
+  return trayImagePromise;
+}
+
+async function createTrayImage(): Promise<TauriImage> {
+  const response = await fetch(trayIconUrl);
+  if (!response.ok) {
+    throw new Error(`Tray icon request failed with status ${response.status}`);
+  }
+
+  const bitmap = await createImageBitmap(await response.blob());
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const context = canvas.getContext('2d');
+  if (!context) {
+    bitmap.close();
+    throw new Error('Unable to create a canvas context for the tray icon');
+  }
+
+  context.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  return TauriImage.new(Uint8Array.from(pixels.data), canvas.width, canvas.height);
 }
 
 async function activateMainWindow(): Promise<void> {

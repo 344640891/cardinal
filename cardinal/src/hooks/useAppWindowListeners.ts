@@ -20,7 +20,7 @@ type QueueSearchOptions = {
 
 type UseAppWindowListenersOptions = {
   activeTab: StatusTabKey;
-  searchInputRef: RefObject<HTMLInputElement>;
+  searchInputRef: RefObject<HTMLInputElement | null>;
   focusAndSelectSearchInput: () => void;
   handleStatusUpdate: (scannedFiles: number, processedEvents: number, rescanErrors: number) => void;
   setLifecycleState: (status: AppLifecycleStatus) => void;

@@ -21,6 +21,10 @@ vi.mock('../LanguageSwitcher', () => ({
 const baseProps = {
   open: true,
   onClose: vi.fn(),
+  themePreference: 'dark' as const,
+  language: 'en-US',
+  defaultLanguage: 'en-US',
+  onSavePreferences: vi.fn(),
   sortThreshold: 200,
   defaultSortThreshold: 100,
   onSortThresholdChange: vi.fn(),
@@ -162,5 +166,34 @@ describe('PreferencesOverlay', () => {
     fireEvent.keyDown(includePathsInput, { key: 'Escape' });
 
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes without submitting staged edits when cancelled', () => {
+    const onClose = vi.fn();
+    const onCancel = vi.fn();
+    const onWatchConfigChange = vi.fn();
+    const onSortThresholdChange = vi.fn();
+    render(
+      <PreferencesOverlay
+        {...baseProps}
+        onClose={onClose}
+        onCancel={onCancel}
+        onWatchConfigChange={onWatchConfigChange}
+        onSortThresholdChange={onSortThresholdChange}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('watchRoot.label'), {
+      target: { value: '/tmp/changed' },
+    });
+    fireEvent.change(screen.getByLabelText('preferences.sortingLimit.label'), {
+      target: { value: '500' },
+    });
+    fireEvent.click(screen.getByText('preferences.cancel'));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onWatchConfigChange).not.toHaveBeenCalled();
+    expect(onSortThresholdChange).not.toHaveBeenCalled();
   });
 });

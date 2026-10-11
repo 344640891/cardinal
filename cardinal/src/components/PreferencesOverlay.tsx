@@ -1,5 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { createGlassScene } from '@glass-sdk/liquid-glass/dom';
+import '@glass-sdk/liquid-glass/styles.css';
+import type { ThemePreference } from '../theme';
 import { getWatchRootValidation, isPathInputValid } from '../utils/watchRoot';
 import ThemeSwitcher from './ThemeSwitcher';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -7,11 +10,19 @@ import LanguageSwitcher from './LanguageSwitcher';
 type PreferencesOverlayProps = {
   open: boolean;
   onClose: () => void;
+  onCancel?: () => void;
+  themePreference: ThemePreference;
+  language: string;
+  defaultLanguage: string;
+  onSavePreferences: (next: {
+    trayIconEnabled: boolean;
+    theme: ThemePreference;
+    language: string;
+  }) => void;
   sortThreshold: number;
   defaultSortThreshold: number;
   onSortThresholdChange: (value: number) => void;
   trayIconEnabled: boolean;
-  onTrayIconEnabledChange: (enabled: boolean) => void;
   watchRoot: string;
   defaultWatchRoot: string;
   onWatchConfigChange: (next: {
@@ -24,17 +35,20 @@ type PreferencesOverlayProps = {
   includePaths: string[];
   defaultIncludePaths: string[];
   onReset: () => void;
-  themeResetToken: number;
 };
 
 export function PreferencesOverlay({
   open,
   onClose,
+  onCancel,
+  themePreference,
+  language,
+  defaultLanguage,
+  onSavePreferences,
   sortThreshold,
   defaultSortThreshold,
   onSortThresholdChange,
   trayIconEnabled,
-  onTrayIconEnabledChange,
   watchRoot,
   defaultWatchRoot,
   onWatchConfigChange,
@@ -43,10 +57,14 @@ export function PreferencesOverlay({
   includePaths,
   defaultIncludePaths,
   onReset,
-  themeResetToken,
 }: PreferencesOverlayProps): React.JSX.Element | null {
   const { t } = useTranslation();
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const removeGlassSurfaceRef = useRef<(() => void) | null>(null);
   const [thresholdInput, setThresholdInput] = useState<string>(() => sortThreshold.toString());
+  const [themeInput, setThemeInput] = useState<ThemePreference>(themePreference);
+  const [languageInput, setLanguageInput] = useState<string>(language);
+  const [trayIconInput, setTrayIconInput] = useState(trayIconEnabled);
   const [watchRootInput, setWatchRootInput] = useState<string>(() => watchRoot);
   const [ignorePathsInput, setIgnorePathsInput] = useState<string>(() => ignorePaths.join('\n'));
   const [includePathsInput, setIncludePathsInput] = useState<string>(() => includePaths.join('\n'));
@@ -58,21 +76,24 @@ export function PreferencesOverlay({
 
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
-        onClose();
+        (onCancel ?? onClose)();
         event.preventDefault();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+  }, [open, onCancel, onClose]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
+    setThemeInput(themePreference);
+    setLanguageInput(language);
+    setTrayIconInput(trayIconEnabled);
     setThresholdInput(sortThreshold.toString());
-  }, [open, sortThreshold]);
+  }, [language, open, sortThreshold, themePreference, trayIconEnabled]);
 
   useEffect(() => {
     if (!open) {
@@ -82,6 +103,71 @@ export function PreferencesOverlay({
     setIgnorePathsInput(ignorePaths.join('\n'));
     setIncludePathsInput(includePaths.join('\n'));
   }, [open, watchRoot, ignorePaths, includePaths]);
+
+  useEffect(() => {
+    if (!open || !cardRef.current) {
+      return;
+    }
+
+    const card = cardRef.current;
+    const root = card.closest('.cardinal-glass-scene');
+    const content = root?.querySelector('main.container');
+    if (!(root instanceof HTMLElement) || !(content instanceof HTMLElement)) {
+      return;
+    }
+
+    const resolveAppearance = (): 'light' | 'dark' => {
+      const explicitTheme = document.documentElement.dataset.theme;
+      if (explicitTheme === 'dark') {
+        return 'dark';
+      }
+      if (explicitTheme === 'light') {
+        return 'light';
+      }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+
+    const glassScene = createGlassScene(root, {
+      maxSurfaces: 1,
+      onDiagnostic: ({ error }) => {
+        if (error) {
+          // WebGPU is optional. The card keeps its CSS fallback when it is unavailable.
+          console.debug('[Cardinal] Liquid Glass unavailable:', error);
+        }
+      },
+    });
+    glassScene.setContent(content);
+
+    const registerSurface = (): void => {
+      removeGlassSurfaceRef.current?.();
+      removeGlassSurfaceRef.current = glassScene.addSurface(card, {
+        material: 'regular',
+        appearance: resolveAppearance(),
+        radius: 18,
+        refraction: 42,
+        motion: 'none',
+      });
+    };
+
+    registerSurface();
+
+    const themeObserver = new MutationObserver(registerSurface);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    colorSchemeQuery.addEventListener('change', registerSurface);
+
+    return () => {
+      colorSchemeQuery.removeEventListener('change', registerSurface);
+      themeObserver.disconnect();
+      removeGlassSurfaceRef.current?.();
+      removeGlassSurfaceRef.current = null;
+      glassScene.dispose();
+    };
+  }, [open]);
 
   const commitThreshold = useCallback(() => {
     const numericText = thresholdInput.replace(/[^\d]/g, '');
@@ -132,6 +218,11 @@ export function PreferencesOverlay({
       return;
     }
     commitThreshold();
+    onSavePreferences({
+      trayIconEnabled: trayIconInput,
+      theme: themeInput,
+      language: languageInput,
+    });
     const trimmedWatchRoot = watchRootInput.trim();
     onWatchConfigChange({
       watchRoot: trimmedWatchRoot,
@@ -145,11 +236,18 @@ export function PreferencesOverlay({
   };
 
   const handleReset = (): void => {
+    setThemeInput('system');
+    setLanguageInput(defaultLanguage);
+    setTrayIconInput(false);
     setThresholdInput(defaultSortThreshold.toString());
     setWatchRootInput(defaultWatchRoot);
     setIgnorePathsInput(defaultIgnorePaths.join('\n'));
     setIncludePathsInput(defaultIncludePaths.join('\n'));
     onReset();
+  };
+
+  const handleCancel = (): void => {
+    (onCancel ?? onClose)();
   };
 
   if (!open) {
@@ -158,7 +256,7 @@ export function PreferencesOverlay({
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>): void => {
     if (event.target === event.currentTarget) {
-      onClose();
+      (onCancel ?? onClose)();
     }
   };
 
@@ -169,7 +267,7 @@ export function PreferencesOverlay({
       aria-modal="true"
       onClick={handleOverlayClick}
     >
-      <div className="preferences-card">
+      <div ref={cardRef} className="preferences-card">
         <header className="preferences-card__header">
           <h1 className="preferences-card__title">{t('preferences.title')}</h1>
         </header>
@@ -177,11 +275,19 @@ export function PreferencesOverlay({
         <div className="preferences-section">
           <div className="preferences-row">
             <p className="preferences-label">{t('preferences.appearance')}</p>
-            <ThemeSwitcher className="preferences-control" resetToken={themeResetToken} />
+            <ThemeSwitcher
+              className="preferences-control"
+              preference={themeInput}
+              onPreferenceChange={setThemeInput}
+            />
           </div>
           <div className="preferences-row">
             <p className="preferences-label">{t('preferences.language')}</p>
-            <LanguageSwitcher className="preferences-control" />
+            <LanguageSwitcher
+              className="preferences-control"
+              language={languageInput}
+              onLanguageChange={setLanguageInput}
+            />
           </div>
           <div className="preferences-row">
             <p className="preferences-label">{t('preferences.trayIcon.label')}</p>
@@ -190,8 +296,8 @@ export function PreferencesOverlay({
                 <input
                   className="preferences-switch__input"
                   type="checkbox"
-                  checked={trayIconEnabled}
-                  onChange={(event) => onTrayIconEnabledChange(event.target.checked)}
+                  checked={trayIconInput}
+                  onChange={(event) => setTrayIconInput(event.target.checked)}
                   aria-label={t('preferences.trayIcon.label')}
                 />
                 <span className="preferences-switch__track" aria-hidden="true" />
@@ -304,6 +410,9 @@ export function PreferencesOverlay({
             )}
           >
             {t('preferences.save')}
+          </button>
+          <button className="preferences-cancel" type="button" onClick={handleCancel}>
+            {t('preferences.cancel')}
           </button>
           <button className="preferences-reset" type="button" onClick={handleReset}>
             {t('preferences.reset')}

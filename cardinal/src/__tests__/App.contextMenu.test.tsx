@@ -227,8 +227,13 @@ vi.mock('../hooks/useAppPreferences', () => ({
   useAppPreferences: () => ({
     isPreferencesOpen: false,
     closePreferences: vi.fn(),
+    cancelPreferences: vi.fn(),
     trayIconEnabled: false,
     setTrayIconEnabled: vi.fn(),
+    themePreference: 'system',
+    language: 'en-US',
+    defaultLanguage: 'en-US',
+    savePreferences: vi.fn(),
     watchRoot: '/',
     defaultWatchRoot: '/',
     ignorePaths: ['/Volumes'],
