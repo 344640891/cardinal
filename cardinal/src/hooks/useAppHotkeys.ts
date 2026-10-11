@@ -18,7 +18,7 @@ type MoveSelectionOptions = {
 type UseAppHotkeysOptions = {
   activeTab: StatusTabKey;
   activeRowIndex: number | null;
-  selectedPaths: string[];
+  getSelectedPaths: () => string[];
   selectedIndicesRef: MutableRefObject<number[]>;
   focusSearchInput: () => void;
   focusAndSelectSearchInput: () => void;
@@ -40,7 +40,7 @@ const isEditableTarget = (target: EventTarget | null): boolean => {
 export function useAppHotkeys({
   activeTab,
   activeRowIndex,
-  selectedPaths,
+  getSelectedPaths,
   selectedIndicesRef,
   focusSearchInput,
   focusAndSelectSearchInput,
@@ -66,6 +66,20 @@ export function useAppHotkeys({
       return true;
     }
 
+    // Command+R is the app's reveal-in-Finder shortcut when a result is selected.
+    // It must run even while the search field still owns focus after a row click.
+    if (key === 'r' && currentTab === 'files') {
+      const currentSelectedPaths = getSelectedPaths();
+      if (currentSelectedPaths.length > 0) {
+        event.preventDefault();
+        currentSelectedPaths.forEach((path) => {
+          const directoryPath = splitPath(path).directory || path;
+          openResultPath(directoryPath);
+        });
+        return true;
+      }
+    }
+
     // Preserve native copy/edit behavior when focus is inside an editable control.
     // Meta+F is intentionally handled above to focus the app search input.
     if (isEditableTarget(event.target)) {
@@ -76,24 +90,17 @@ export function useAppHotkeys({
       return false;
     }
 
-    if (key === 'r' && selectedPaths.length > 0) {
+    const currentSelectedPaths = getSelectedPaths();
+
+    if (key === 'o' && currentSelectedPaths.length > 0) {
       event.preventDefault();
-      selectedPaths.forEach((path) => {
-        const directoryPath = splitPath(path).directory || path;
-        openResultPath(directoryPath);
-      });
+      currentSelectedPaths.forEach((path) => openResultPath(path));
       return true;
     }
 
-    if (key === 'o' && selectedPaths.length > 0) {
+    if (key === 'c' && currentSelectedPaths.length > 0) {
       event.preventDefault();
-      selectedPaths.forEach((path) => openResultPath(path));
-      return true;
-    }
-
-    if (key === 'c' && selectedPaths.length > 0) {
-      event.preventDefault();
-      void invoke('copy_files_to_clipboard', { paths: selectedPaths }).catch((error) => {
+      void invoke('copy_files_to_clipboard', { paths: currentSelectedPaths }).catch((error) => {
         console.error('Failed to copy files to clipboard', error);
       });
       return true;
@@ -109,12 +116,13 @@ export function useAppHotkeys({
     }
 
     if (event.key === 'Enter') {
-      if (selectedPaths.length === 0) {
+      const currentSelectedPaths = getSelectedPaths();
+      if (currentSelectedPaths.length === 0) {
         return false;
       }
 
       event.preventDefault();
-      selectedPaths.forEach((path) => openResultPath(path));
+      currentSelectedPaths.forEach((path) => openResultPath(path));
       return true;
     }
 

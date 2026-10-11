@@ -24,7 +24,7 @@ const mockedOpenResultPath = vi.mocked(openResultPath);
 type HookProps = {
   activeTab: 'files' | 'events';
   activeRowIndex: number | null;
-  selectedPaths: string[];
+  getSelectedPaths: () => string[];
   selectedIndicesRef: { current: number[] };
   focusSearchInput: () => void;
   focusAndSelectSearchInput: () => void;
@@ -48,7 +48,7 @@ describe('useAppHotkeys', () => {
       initialProps: {
         activeTab: 'files',
         activeRowIndex: 1,
-        selectedPaths: ['/tmp/a', '/tmp/b'],
+        getSelectedPaths: () => ['/tmp/a', '/tmp/b'],
         selectedIndicesRef: { current: [0] },
         focusSearchInput,
         focusAndSelectSearchInput,
@@ -134,6 +134,77 @@ describe('useAppHotkeys', () => {
     expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/a');
     expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/b');
     expect(enterEvent.defaultPrevented).toBe(true);
+  });
+
+  it('resolves paths from the list when a memoized selection snapshot is stale', () => {
+    renderHotkeys({ getSelectedPaths: () => ['/tmp/fresh-result'] });
+
+    const enterEvent = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      cancelable: true,
+    });
+    act(() => {
+      window.dispatchEvent(enterEvent);
+    });
+
+    expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/fresh-result');
+    expect(enterEvent.defaultPrevented).toBe(true);
+  });
+
+  it('resolves hydrated paths at shortcut time instead of using a stale snapshot', () => {
+    const getSelectedPaths = vi.fn(() => ['/tmp/hydrated/file.txt']);
+    renderHotkeys({ getSelectedPaths });
+
+    const revealEvent = new KeyboardEvent('keydown', {
+      key: 'r',
+      metaKey: true,
+      cancelable: true,
+    });
+    act(() => {
+      window.dispatchEvent(revealEvent);
+    });
+
+    expect(getSelectedPaths).toHaveBeenCalledTimes(1);
+    expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/hydrated');
+    expect(revealEvent.defaultPrevented).toBe(true);
+  });
+
+  it('opens a hydrated selected result with Enter even when the render snapshot is empty', () => {
+    const getSelectedPaths = vi.fn(() => ['/tmp/hydrated/file.txt']);
+    renderHotkeys({ getSelectedPaths });
+
+    const enterEvent = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      cancelable: true,
+    });
+    act(() => {
+      window.dispatchEvent(enterEvent);
+    });
+
+    expect(getSelectedPaths).toHaveBeenCalledTimes(1);
+    expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp/hydrated/file.txt');
+    expect(enterEvent.defaultPrevented).toBe(true);
+  });
+
+  it('reveals the selected result when Command+R is pressed from the search field', () => {
+    renderHotkeys();
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+
+    const revealEvent = new KeyboardEvent('keydown', {
+      key: 'r',
+      metaKey: true,
+      cancelable: true,
+      bubbles: true,
+    });
+    act(() => {
+      input.dispatchEvent(revealEvent);
+    });
+
+    expect(mockedOpenResultPath).toHaveBeenCalledTimes(2);
+    expect(mockedOpenResultPath).toHaveBeenCalledWith('/tmp');
+    expect(revealEvent.defaultPrevented).toBe(true);
+    input.remove();
   });
 
   it('does not override native copy shortcuts inside editable fields', () => {
@@ -259,7 +330,7 @@ describe('useAppHotkeys', () => {
     rerender({
       activeTab: 'events',
       activeRowIndex: 0,
-      selectedPaths: ['/tmp/a', '/tmp/b'],
+      getSelectedPaths: () => ['/tmp/a', '/tmp/b'],
       selectedIndicesRef: { current: [0] },
       focusSearchInput,
       focusAndSelectSearchInput,

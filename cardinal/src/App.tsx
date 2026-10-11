@@ -96,6 +96,7 @@ function App() {
     selectedIndicesRef,
     activeRowIndex,
     selectedPaths,
+    getSelectedPaths,
     handleRowSelect,
     selectSingleRow,
     clearSelection,
@@ -266,7 +267,7 @@ function App() {
   useAppHotkeys({
     activeTab,
     activeRowIndex,
-    selectedPaths,
+    getSelectedPaths,
     selectedIndicesRef,
     focusSearchInput,
     focusAndSelectSearchInput,

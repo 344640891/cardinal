@@ -47,6 +47,15 @@ describe('FileRow selection interactions', () => {
     });
   });
 
+  it('moves keyboard focus to the row when it is clicked', () => {
+    const { getByTitle } = renderRow({ isSelected: false });
+    const node = getByTitle(baseItem.path);
+
+    fireEvent.mouseDown(node, { button: 0 });
+
+    expect(node).toBe(document.activeElement);
+  });
+
   it('tells the selection controller to extend the range when shift-clicking a selected row', () => {
     const onSelect = vi.fn();
     const { getByTitle } = renderRow({ onSelect });

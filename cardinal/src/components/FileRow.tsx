@@ -72,6 +72,10 @@ export const FileRow = memo(function FileRow({
       return;
     }
 
+    // Move focus to the selected row so keyboard actions (Enter/Command+R) target
+    // the result after it is clicked, even when the search field was focused.
+    e.currentTarget.focus();
+
     const options = {
       isShift: e.shiftKey,
       isMeta: e.metaKey,
@@ -152,6 +156,7 @@ export const FileRow = memo(function FileRow({
     <div
       style={style}
       className={rowClassName}
+      tabIndex={-1}
       data-row-path={path}
       onContextMenu={handleContextMenu}
       onMouseDown={handleMouseDown}

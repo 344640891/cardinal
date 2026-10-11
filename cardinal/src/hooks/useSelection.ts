@@ -15,6 +15,7 @@ export type SelectionController = {
   activeRowIndex: number | null;
   shiftAnchorIndex: number | null;
   selectedPaths: string[];
+  getSelectedPaths: () => string[];
   handleRowSelect: (rowIndex: number, options: RowSelectOptions) => void;
   selectSingleRow: (rowIndex: number) => void;
   clearSelection: () => void;
@@ -159,12 +160,32 @@ export const useSelection = (
     return paths;
   }, [selectedIndices, virtualListRef]);
 
+  // Resolve paths at the time an action is invoked. Row metadata is hydrated
+  // asynchronously, so the memoized `selectedPaths` snapshot can briefly lag
+  // behind the virtual-list cache after a result refresh.
+  const getSelectedPaths = useCallback(() => {
+    const list = virtualListRef.current;
+    if (!list) {
+      return [];
+    }
+
+    const paths: string[] = [];
+    selectedIndicesRef.current.forEach((index) => {
+      const item = list.getItem(index);
+      if (item?.path) {
+        paths.push(item.path);
+      }
+    });
+    return paths;
+  }, [virtualListRef]);
+
   return {
     selectedIndices,
     selectedIndicesRef,
     activeRowIndex,
     shiftAnchorIndex,
     selectedPaths,
+    getSelectedPaths,
     handleRowSelect,
     selectSingleRow,
     clearSelection,
