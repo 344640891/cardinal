@@ -45,6 +45,7 @@ pub(crate) static LOGIC_START: OnceCell<Sender<LogicStartConfig>> = OnceCell::ne
 pub(crate) static SUPPRESS_NEXT_FOCUS_LOSS: AtomicBool = AtomicBool::new(false);
 pub(crate) static FOCUS_LOSS_HANDLING_STATE: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TRAY_POLICY_GENERATION: AtomicU64 = AtomicU64::new(0);
+pub(crate) static WINDOW_HAS_BEEN_FOCUSED: AtomicBool = AtomicBool::new(false);
 pub(crate) const DEFAULT_SYSTEM_IGNORE_PATH: &str = "/System/Volumes/Data";
 const FSE_LATENCY_SECS: f64 = 0.1;
 
@@ -116,6 +117,7 @@ pub fn run() -> Result<()> {
 
             match event {
                 WindowEvent::Focused(true) => {
+                    WINDOW_HAS_BEEN_FOCUSED.store(true, Ordering::Release);
                     let _ = update_window_state_tx_for_window.try_send(());
                 }
                 WindowEvent::Focused(false) => {
@@ -123,7 +125,9 @@ pub fn run() -> Result<()> {
                         return;
                     }
 
-                    if FOCUS_LOSS_HANDLING_STATE.load(Ordering::Acquire) & 1 == 0 {
+                    if !WINDOW_HAS_BEEN_FOCUSED.load(Ordering::Acquire)
+                        || FOCUS_LOSS_HANDLING_STATE.load(Ordering::Acquire) & 1 == 0
+                    {
                         return;
                     }
 
