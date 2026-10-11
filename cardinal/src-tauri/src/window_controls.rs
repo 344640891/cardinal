@@ -2,6 +2,11 @@ use crate::commands::SearchState;
 use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindow};
 use tracing::{error, info, warn};
 
+#[cfg(target_os = "macos")]
+use objc2_app_kit::NSApplication;
+#[cfg(target_os = "macos")]
+use objc2_foundation::MainThreadMarker;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowToggle {
     Hidden,
@@ -10,6 +15,15 @@ pub enum WindowToggle {
 }
 
 pub fn activate_window<R: Runtime>(window: &WebviewWindow<R>) {
+    #[cfg(target_os = "macos")]
+    unsafe {
+        let mtm = MainThreadMarker::new_unchecked();
+        let application = NSApplication::sharedApplication(mtm);
+        application.unhideWithoutActivation();
+        #[allow(deprecated)]
+        application.activateIgnoringOtherApps(true);
+    }
+
     if let Ok(true) = window.is_minimized()
         && let Err(err) = window.unminimize()
     {

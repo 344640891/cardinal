@@ -29,8 +29,8 @@ use search_cancel::CancellationToken;
 use std::{
     path::{Path, PathBuf},
     sync::{
-        Arc, Once,
-        atomic::{AtomicBool, Ordering},
+        Once,
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     time::Duration,
 };
@@ -43,6 +43,8 @@ use window_controls::{activate_window, hide_window};
 static DB_PATH: OnceCell<PathBuf> = OnceCell::new();
 pub(crate) static LOGIC_START: OnceCell<Sender<LogicStartConfig>> = OnceCell::new();
 pub(crate) static SUPPRESS_NEXT_FOCUS_LOSS: AtomicBool = AtomicBool::new(false);
+pub(crate) static FOCUS_LOSS_HANDLING_ENABLED: AtomicBool = AtomicBool::new(false);
+pub(crate) static TRAY_POLICY_GENERATION: AtomicU64 = AtomicU64::new(0);
 pub(crate) const DEFAULT_SYSTEM_IGNORE_PATH: &str = "/System/Volumes/Data";
 const FSE_LATENCY_SECS: f64 = 0.1;
 
@@ -87,8 +89,6 @@ pub fn run() -> Result<()> {
         builder = builder.plugin(tauri_plugin_prevent_default::init());
     }
     let update_window_state_tx_for_window = update_window_state_tx.clone();
-    let window_has_been_focused = Arc::new(AtomicBool::new(false));
-    let window_has_been_focused_for_event = Arc::clone(&window_has_been_focused);
     builder = builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_drag::init())
@@ -112,7 +112,6 @@ pub fn run() -> Result<()> {
 
             match event {
                 WindowEvent::Focused(true) => {
-                    window_has_been_focused_for_event.store(true, Ordering::Relaxed);
                     let _ = update_window_state_tx_for_window.try_send(());
                 }
                 WindowEvent::Focused(false) => {
@@ -120,7 +119,7 @@ pub fn run() -> Result<()> {
                         return;
                     }
 
-                    if !window_has_been_focused_for_event.load(Ordering::Relaxed) {
+                    if !FOCUS_LOSS_HANDLING_ENABLED.load(Ordering::Relaxed) {
                         return;
                     }
 
