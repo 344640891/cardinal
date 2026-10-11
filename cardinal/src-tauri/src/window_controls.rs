@@ -14,8 +14,8 @@ pub enum WindowToggle {
     Failed,
 }
 
-pub fn activate_window<R: Runtime>(window: &WebviewWindow<R>) {
-    #[cfg(target_os = "macos")]
+#[cfg(target_os = "macos")]
+pub fn unhide_application() {
     unsafe {
         let mtm = MainThreadMarker::new_unchecked();
         let application = NSApplication::sharedApplication(mtm);
@@ -23,7 +23,12 @@ pub fn activate_window<R: Runtime>(window: &WebviewWindow<R>) {
         #[allow(deprecated)]
         application.activateIgnoringOtherApps(true);
     }
+}
 
+#[cfg(not(target_os = "macos"))]
+pub fn unhide_application() {}
+
+pub fn activate_window<R: Runtime>(window: &WebviewWindow<R>) {
     if let Ok(true) = window.is_minimized()
         && let Err(err) = window.unminimize()
     {

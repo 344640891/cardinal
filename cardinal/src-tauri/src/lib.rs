@@ -43,7 +43,7 @@ use window_controls::{activate_window, hide_window};
 static DB_PATH: OnceCell<PathBuf> = OnceCell::new();
 pub(crate) static LOGIC_START: OnceCell<Sender<LogicStartConfig>> = OnceCell::new();
 pub(crate) static SUPPRESS_NEXT_FOCUS_LOSS: AtomicBool = AtomicBool::new(false);
-pub(crate) static FOCUS_LOSS_HANDLING_ENABLED: AtomicBool = AtomicBool::new(false);
+pub(crate) static FOCUS_LOSS_HANDLING_STATE: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TRAY_POLICY_GENERATION: AtomicU64 = AtomicU64::new(0);
 pub(crate) const DEFAULT_SYSTEM_IGNORE_PATH: &str = "/System/Volumes/Data";
 const FSE_LATENCY_SECS: f64 = 0.1;
@@ -81,7 +81,11 @@ pub fn run() -> Result<()> {
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            window_controls::activate_main_window_impl(app);
+            let app_handle = app.clone();
+            let _ = app.run_on_main_thread(move || {
+                window_controls::unhide_application();
+                window_controls::activate_main_window_impl(&app_handle);
+            });
         }));
     }
     #[cfg(not(feature = "dev"))]
@@ -119,7 +123,7 @@ pub fn run() -> Result<()> {
                         return;
                     }
 
-                    if !FOCUS_LOSS_HANDLING_ENABLED.load(Ordering::Relaxed) {
+                    if FOCUS_LOSS_HANDLING_STATE.load(Ordering::Acquire) & 1 == 0 {
                         return;
                     }
 
