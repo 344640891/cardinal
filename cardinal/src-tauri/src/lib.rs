@@ -259,7 +259,7 @@ pub fn run() -> Result<()> {
             RunEvent::Reopen { .. } => {
                 // On macOS, clicking the Dock icon should bring the main window back even if the
                 // app still "has windows" but they are hidden.
-                window_controls::activate_main_window_impl(&app_handle);
+                window_controls::activate_main_window_impl(app_handle);
             }
             _ => {}
         });

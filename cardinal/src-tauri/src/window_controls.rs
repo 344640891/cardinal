@@ -1,12 +1,11 @@
 use crate::{TRAY_ICON_ENABLED, commands::SearchState};
-use std::{sync::atomic::Ordering, thread, time::Duration};
-use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindow};
-use tracing::{error, info, warn};
-
 #[cfg(target_os = "macos")]
 use objc2_app_kit::NSApplication;
 #[cfg(target_os = "macos")]
 use objc2_foundation::MainThreadMarker;
+use std::{sync::atomic::Ordering, thread, time::Duration};
+use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindow};
+use tracing::{error, info, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowToggle {
@@ -126,8 +125,8 @@ fn reassert_tray_policy(app: &AppHandle) {
         let app_for_policy = delayed_app.clone();
         let _ = delayed_app.run_on_main_thread(move || {
             if TRAY_ICON_ENABLED.load(Ordering::Acquire) {
-                if let Err(error) = app_for_policy
-                    .set_activation_policy(tauri::ActivationPolicy::Accessory)
+                if let Err(error) =
+                    app_for_policy.set_activation_policy(tauri::ActivationPolicy::Accessory)
                 {
                     error!(?error, "Failed to reassert delayed tray activation policy");
                 }
