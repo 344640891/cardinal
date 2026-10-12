@@ -1707,6 +1707,26 @@ button:active:not(:disabled) {
   flex-direction: column;
 }
 
+.about-card {
+  max-width: 420px;
+}
+
+.about-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.about-card__details p {
+  margin: 0;
+}
+
+.about-card__details a {
+  color: var(--color-accent);
+  overflow-wrap: anywhere;
+}
+
 .preferences-card__header {
   padding-bottom: 12px;
   margin-bottom: 20px;

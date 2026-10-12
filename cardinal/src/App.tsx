@@ -7,6 +7,7 @@ import { MenuBar } from './components/MenuBar';
 import { FilesTabContent } from './components/FilesTabContent';
 import { PermissionOverlay } from './components/PermissionOverlay';
 import PreferencesOverlay from './components/PreferencesOverlay';
+import AboutOverlay from './components/AboutOverlay';
 import StatusBar from './components/StatusBar';
 import type { SearchResultItem } from './types/search';
 import { useColumnResize } from './hooks/useColumnResize';
@@ -32,6 +33,7 @@ import { useAppPreferences } from './hooks/useAppPreferences';
 import { useAppWindowListeners } from './hooks/useAppWindowListeners';
 import { useFilesTabEffects } from './hooks/useFilesTabEffects';
 import { useFilesTabState } from './hooks/useFilesTabState';
+import { OPEN_ABOUT_EVENT } from './constants/appEvents';
 
 const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -69,6 +71,7 @@ function App() {
   const virtualListRef = useRef<VirtualListHandle | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [showStatusBar, setShowStatusBar] = useState(true);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   const { colWidths, onResizeStart, autoFitColumns } = useColumnResize();
   const { caseSensitive, directoryQuery, directoryScopeOpen } = searchParams;
@@ -221,6 +224,14 @@ function App() {
     window.addEventListener('cardinal:focus-search', handleMenuFocusSearch);
     return () => window.removeEventListener('cardinal:focus-search', handleMenuFocusSearch);
   }, [focusAndSelectSearchInput]);
+
+  useEffect(() => {
+    const handleOpenAbout = (): void => setIsAboutOpen(true);
+    window.addEventListener(OPEN_ABOUT_EVENT, handleOpenAbout);
+    return () => window.removeEventListener(OPEN_ABOUT_EVENT, handleOpenAbout);
+  }, []);
+
+  const closeAbout = useCallback(() => setIsAboutOpen(false), []);
 
   const refreshSearchResults = useCallback(() => {
     queueSearch(currentQuery, { immediate: true });
@@ -443,7 +454,7 @@ function App() {
     <div className="cardinal-glass-scene">
       <main
         className={`container${isTauriRuntime ? ' container--native' : ''}`}
-        aria-hidden={showFullDiskAccessOverlay || isPreferencesOpen}
+        aria-hidden={showFullDiskAccessOverlay || isPreferencesOpen || isAboutOpen}
       >
         <MenuBar
           activeTab={activeTab}
@@ -554,6 +565,7 @@ function App() {
         defaultIncludePaths={defaultIncludePaths}
         onReset={handleResetPreferences}
       />
+      <AboutOverlay open={isAboutOpen} onClose={closeAbout} />
       {showFullDiskAccessOverlay && (
         <PermissionOverlay
           title={t('app.fullDiskAccess.title')}

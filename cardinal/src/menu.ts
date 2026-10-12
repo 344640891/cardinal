@@ -1,9 +1,7 @@
-import { getName, getVersion } from '@tauri-apps/api/app';
+import { getName } from '@tauri-apps/api/app';
 import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { OPEN_ABOUT_EVENT } from './constants/appEvents';
 import i18n from './i18n/config';
-
-const GIT_REPOSITORY_URL = 'https://github.com/cardisoft/cardinal';
 
 let menuInitPromise: Promise<void> | null = null;
 
@@ -24,12 +22,8 @@ const dispatchMenuEvent = (name: string): void => {
 const menuText = (key: string, fallback: string): string => i18n.t(key, { defaultValue: fallback });
 
 async function buildAppMenu(): Promise<void> {
-  const [name, version] = await Promise.all([
-    getName().catch(() => null),
-    getVersion().catch(() => null),
-  ]);
+  const name = await getName().catch(() => null);
   const appName = name ?? 'Cardinal';
-  const appVersion = version ?? 'unknown';
   const separator = () => PredefinedMenuItem.new({ item: 'Separator' });
 
   const quitItem = await PredefinedMenuItem.new({
@@ -77,25 +71,15 @@ async function buildAppMenu(): Promise<void> {
     items: [await MenuItem.new({ id: 'menu.bookmarks.placeholder', text: '书签功能暂未配置' })],
   });
 
-  const aboutVersionItem = await MenuItem.new({
-    id: 'menu.about.version',
-    text: `${appName} v${appVersion}`,
-    enabled: false,
-  });
-  const aboutRepositoryItem = await MenuItem.new({
-    id: 'menu.about.repository',
-    text: `Git 仓库：${GIT_REPOSITORY_URL}`,
-    action: () => void openUrl(GIT_REPOSITORY_URL),
-  });
-  const aboutSubmenu = await Submenu.new({
+  const aboutItem = await MenuItem.new({
     id: 'menu.about',
     text: i18n.t('menu.about', { appName, defaultValue: `关于 ${appName}` }),
-    items: [aboutVersionItem, aboutRepositoryItem],
+    action: () => dispatchMenuEvent(OPEN_ABOUT_EVENT),
   });
   const helpSubmenu = await Submenu.new({
     id: 'menu.help-root',
     text: `${menuText('menu.help', '帮助')}(H)`,
-    items: [aboutSubmenu],
+    items: [aboutItem],
   });
 
   await helpSubmenu.setAsHelpMenuForNSApp().catch(() => {});

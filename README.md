@@ -1,87 +1,94 @@
 <div align="center">
   <img src="cardinal/mac-icon_1024x1024.png" alt="Cardinal icon" width="120" height="120">
   <h1>Cardinal</h1>
-  <p>Fastest and most accurate file search app for macOS.</p>
+  <p>最快最准的 macOS 文件搜索应用</p>
   <p>
-    <a href="#using-cardinal">Using Cardinal</a> ·
-    <a href="#building-cardinal">Building Cardinal</a>
+    <a href="#使用-cardinal">使用 Cardinal</a> ·
+    <a href="#构建-cardinal">构建 Cardinal</a>
   </p>
   <img src="doc/pub/UI.gif" alt="Cardinal UI preview" width="720">
 </div>
 
 ---
 
-[English](README.md) · [Español](doc/pub/README.es-ES.md) · [한국어](doc/pub/README.ko-KR.md) · [Русский](doc/pub/README.ru-RU.md) · [简体中文](doc/pub/README.zh-CN.md) · [繁體中文](doc/pub/README.zh-TW.md) · [Português](doc/pub/README.pt-BR.md) · [Italiano](doc/pub/README.it-IT.md) · [日本語](doc/pub/README.ja-JP.md) · [Français](doc/pub/README.fr-FR.md) · [Deutsch](doc/pub/README.de-DE.md) · [Українська](doc/pub/README.uk-UA.md) · [العربية](doc/pub/README.ar-SA.md) · [हिन्दी](doc/pub/README.hi-IN.md) · [Türkçe](doc/pub/README.tr-TR.md)
+[English](doc/pub/README.en-US.md) · [Español](doc/pub/README.es-ES.md) · [한국어](doc/pub/README.ko-KR.md) · [Русский](doc/pub/README.ru-RU.md) · [简体中文](README.md) · [繁體中文](doc/pub/README.zh-TW.md) · [Português](doc/pub/README.pt-BR.md) · [日本語](doc/pub/README.ja-JP.md) · [Français](doc/pub/README.fr-FR.md) · [Deutsch](doc/pub/README.de-DE.md) · [Українська](doc/pub/README.uk-UA.md) · [العربية](doc/pub/README.ar-SA.md) · [हिन्दी](doc/pub/README.hi-IN.md) · [Türkçe](doc/pub/README.tr-TR.md)
 
-## Using Cardinal
+## 使用 Cardinal
 
-### Download
+### 下载
 
-Use homebrew:
+通过 Homebrew 安装：
 
 ```bash
 brew install --cask cardinal-search
 ```
 
-You can also grab the latest packaged builds from [GitHub Releases](https://github.com/cardisoft/cardinal/releases/).
+你也可以从 [GitHub Releases](https://github.com/cardisoft/cardinal/releases/) 获取最新的安装包。
 
-### i18n support
+### 国际化支持
 
-Need a different language? Click the ⚙️ button in the status bar to switch instantly.
+想切换其他语言？点击状态栏里的 ⚙️ 按钮即可即时切换。
 
-### Search basics
+### 基础搜索语法
 
-Cardinal now speaks an Everything-compatible syntax layer on top of the classic substring/prefix tricks:
+Cardinal 现在在经典的子串/前缀匹配基础上叠加了 Everything 兼容语法：
 
-- `report draft` – space acts as `AND`, so you only see files whose names contain both tokens.
-- `*.pdf briefing` – filter to PDF results whose names include “briefing”.
-- `*.zip size:>100MB` – search for ZIP files larger than 100MB.
-- `in:/Users demo !.psd` – restrict the search root to `/Users`, then search for files whose names contain `demo` but exclude `.psd`.
-- `tag:ProjectA;ProjectB` – match Finder tags (macOS); `;` acts as `OR`.
-- `*.md content:"Bearer "` – filter to Markdown files containing the string `Bearer `.
-- `"Application Support"` – quote exact phrases.
-- `brary/Applicat` – use `/` as a path separator for sub-path searching, matching directories like `Library/Application Support`.
-- `/report` · `draft/` · `/report/` – wrap tokens with leading and/or trailing slashes to force **prefix**, **suffix**, or **exact** name matches when you need whole-word control beyond Everything syntax.
-- `~/**/.DS_Store` – globstar (`**`) dives through every subfolder under your home directory to find stray `.DS_Store` files anywhere in the tree.
+- `report draft` – 空格代表 `AND`，只会得到同时包含两个词的文件。
+- `*.pdf briefing` – 只显示文件名包含 “briefing” 的 PDF 结果。
+- `*.zip size:>100MB` – 查找大于 100MB 的 ZIP 文件。
+- `in:/Users demo !.psd` – 把搜索范围限制在 `/Users`，然后匹配包含 `demo` 但排除 `.psd` 的文件。
+- `tag:ProjectA;ProjectB` – 按 Finder 标签（macOS）过滤；`;` 表示 `OR`（满足任一标签即可）。
+- `*.md content:"Bearer "` – 仅筛选包含字符串 `Bearer ` 的 Markdown 文件。
+- `"Application Support"` – 使用引号匹配完整短语。
+- `brary/Applicat` – 使用 `/` 作为路径分隔符向下匹配子路径，例如 `Library/Application Support`。
+- `/report` · `draft/` · `/report/` – 在词首/词尾添加 `/`，分别强制匹配前缀、后缀或精确文件名，补足 Everything 语法之外的整词控制。
+- `~/**/.DS_Store` – `**` 会深入所有子目录，在整个家目录中查找散落的 `.DS_Store` 文件。
 
-For the supported operator catalog—including boolean grouping, folder scoping, extension filters, regex usage, and more examples—see [`doc/pub/search-syntax.md`](doc/pub/search-syntax.md).
+更多支持的操作符（布尔组合、文件夹限定、扩展名过滤、正则示例等）请参见 [`search-syntax.zh-CN.md`](doc/pub/search-syntax.zh-CN.md)。
 
-### Keyboard shortcuts & previews
+### 键盘快捷键与预览
 
-- `Cmd+Shift+Space` – toggle the Cardinal window globally via the quick-launch hotkey.
-- `Cmd+,` – open Preferences.
-- `Esc` – hide the Cardinal window.
-- `ArrowUp`/`ArrowDown` – move the selection.
-- `Shift+ArrowUp`/`Shift+ArrowDown` – extend the selection.
-- `Space` – Quick Look the currently selected row without leaving Cardinal.
-- `Cmd+O` – open the highlighted result.
-- `Cmd+R` – reveal the highlighted result in Finder.
-- `Cmd+C` – copy the selected files to the clipboard.
-- `Cmd+Shift+C` – copy the selected paths to the clipboard.
-- `Cmd+F` – jump focus back to the search bar.
-- `ArrowUp`/`ArrowDown` (in search bar) – cycle search history.
+- `Cmd+Shift+Space` – 通过全局快捷键开/关 Cardinal 窗口。
+- `Cmd+,` – 打开偏好设置。
+- `Esc` – 隐藏 Cardinal 窗口。
+- `ArrowUp`/`ArrowDown` – 上下移动选中项。
+- `Shift+ArrowUp`/`Shift+ArrowDown` – 扩展选中范围。
+- `Space` – 不离开 Cardinal 即可对当前行执行 Quick Look。
+- `Cmd+O` – 打开选中的结果。
+- `Cmd+R` – 在 Finder 中定位选中的结果。
+- `Cmd+C` – 复制所选文件到剪贴板。
+- `Cmd+Shift+C` – 复制所选路径到剪贴板。
+- `Cmd+F` – 焦点回到搜索框。
+- `ArrowUp`/`ArrowDown`（在搜索框内）– 浏览搜索历史。
 
-Happy searching!
+祝你搜索愉快！
+
+### 和原版的差异
+
+- 参考windows下的everything对界面做了调整。
+- 现在在编辑框输入回车键或者方向↓键，会选中下方结果list里的第一项了，如果list里有数据的话。
+- 在list里按回车键，会直接打开当前高亮item的目标文件了。
+- 双击结果list里的路径列的单元格，会打开该条item的路径的访达窗口了。
 
 ---
 
-## Building Cardinal
+## 构建 Cardinal
 
-### Requirements
+### 环境要求
 
 - macOS 12+
-- Rust toolchain
-- Node.js 18+ with npm
-- Xcode command-line tools & Tauri prerequisites (<https://tauri.app/start/prerequisites/>)
+- Rust 工具链
+- Node.js 18+（附 npm）
+- Xcode 命令行工具和 Tauri 依赖（<https://tauri.app/start/prerequisites/>）
 
-### Development mode
+### 开发模式
 
 ```bash
 cd cardinal
 npm run tauri dev -- --release --features dev
 ```
 
-### Production build
+### 生产构建
 
 ```bash
 cd cardinal
