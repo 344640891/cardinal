@@ -174,6 +174,24 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Set application version from release tag
+        if: startsWith(github.ref, 'refs/tags/V')
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+
+          const tag = process.env.GITHUB_REF_NAME;
+          if (!/^V\d+\.\d+\.\d+$/.test(tag)) {
+            throw new Error(`Expected a release tag in the form V1.2.3, received ${tag}`);
+          }
+
+          const configPath = 'src-tauri/tauri.conf.json';
+          const config = JSON.parse(readFileSync(configPath, 'utf8'));
+          config.version = tag.slice(1);
+          writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+          console.log(`Application version: ${config.version}`);
+          NODE
+
       - name: Build frontend
         run: npm run build
 
@@ -192,13 +210,7 @@ jobs:
           mkdir -p "$artifact_root"
 
           while IFS= read -r dmg_path; do
-            dmg_name="$(basename "$dmg_path")"
-            if [[ "$GITHUB_REF_NAME" =~ ^V([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-              release_tag="${GITHUB_REF_NAME#V}"
-              architecture_suffix="${dmg_name##*_}"
-              dmg_name="Cardinal_${release_tag}_${architecture_suffix}"
-            fi
-            cp "$dmg_path" "$artifact_root/$dmg_name"
+            cp "$dmg_path" "$artifact_root/"
           done < <(find "$bundle_root" -type f -name '*.dmg' -print)
 
           test -n "$(find "$artifact_root" -type f -print -quit)"
