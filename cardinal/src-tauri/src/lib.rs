@@ -134,11 +134,11 @@ pub fn run() -> Result<()> {
                         return;
                     }
 
-                    if let Some(main_window) = window.get_webview_window("main") {
-                        if hide_window(&main_window) {
-                            let _ = update_window_state_tx_for_window.try_send(());
-                            info!("Main window hidden after losing focus");
-                        }
+                    if let Some(main_window) = window.get_webview_window("main")
+                        && hide_window(&main_window)
+                    {
+                        let _ = update_window_state_tx_for_window.try_send(());
+                        info!("Main window hidden after losing focus");
                     }
                 }
                 WindowEvent::CloseRequested { api, .. } => {
