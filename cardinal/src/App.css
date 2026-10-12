@@ -2057,7 +2057,7 @@ button:active:not(:disabled) {
 
 /* === Everything-compatible desktop skin === */
 :root {
-  --font-sans: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  --font-sans: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', Arial, sans-serif;
   --container-padding: 0px;
   --cell-hpad: 4px;
   --skin-bg: #fff;

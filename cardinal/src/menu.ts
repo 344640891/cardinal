@@ -23,8 +23,7 @@ const dispatchMenuEvent = (name: string): void => {
   }
 };
 
-const menuText = (key: string, fallback: string): string =>
-  i18n.t(key, { defaultValue: fallback });
+const menuText = (key: string, fallback: string): string => i18n.t(key, { defaultValue: fallback });
 
 async function buildAppMenu(): Promise<void> {
   const name = (await getName().catch(() => null)) ?? 'Cardinal';
@@ -54,7 +53,14 @@ async function buildAppMenu(): Promise<void> {
   const fileSubmenu = await Submenu.new({
     id: 'menu.file',
     text: menuText('menu.file', '文件(F)'),
-    items: [newWindowItem, await separator(), preferencesItem, hideItem, await separator(), quitItem],
+    items: [
+      newWindowItem,
+      await separator(),
+      preferencesItem,
+      hideItem,
+      await separator(),
+      quitItem,
+    ],
   });
 
   const editSubmenu = await Submenu.new({
@@ -167,7 +173,15 @@ async function buildAppMenu(): Promise<void> {
   await helpSubmenu.setAsHelpMenuForNSApp().catch(() => {});
 
   const menu = await Menu.new({
-    items: [fileSubmenu, editSubmenu, viewSubmenu, searchSubmenu, bookmarksSubmenu, toolsSubmenu, helpSubmenu],
+    items: [
+      fileSubmenu,
+      editSubmenu,
+      viewSubmenu,
+      searchSubmenu,
+      bookmarksSubmenu,
+      toolsSubmenu,
+      helpSubmenu,
+    ],
   });
   await menu.setAsAppMenu();
 }

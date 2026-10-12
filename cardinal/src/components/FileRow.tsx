@@ -181,11 +181,7 @@ export const FileRow = memo(function FileRow({
         />
       </div>
       {/* Directory column renders the parent path (the filename column already shows the leaf). */}
-      <span
-        className="path-text"
-        title={directoryPath}
-        onDoubleClick={handlePathDoubleClick}
-      >
+      <span className="path-text" title={directoryPath} onDoubleClick={handlePathDoubleClick}>
         {directoryPath}
       </span>
       <span className={`size-text ${!sizeText ? 'muted' : ''}`}>{sizeText || '—'}</span>

@@ -36,8 +36,7 @@ export function useFullDiskAccessPermission(): UseFullDiskAccessPermissionResult
   }, []);
 
   useEffect(() => {
-    const isTauriRuntime =
-      typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+    const isTauriRuntime = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
     if (!isTauriRuntime) {
       setIsChecking(false);
       return;

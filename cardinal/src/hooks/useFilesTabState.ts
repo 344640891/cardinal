@@ -77,17 +77,15 @@ export function useFilesTabState({
   );
 
   const handleHistoryNavigation = useCallback(() => {
-      if (activeTab !== 'files') {
-        return;
-      }
+    if (activeTab !== 'files') {
+      return;
+    }
 
-      const nextValue = navigateSearchHistory('older');
-      if (nextValue !== null) {
-        queueSearch(nextValue);
-      }
-    },
-    [activeTab, navigateSearchHistory, queueSearch],
-  );
+    const nextValue = navigateSearchHistory('older');
+    if (nextValue !== null) {
+      queueSearch(nextValue);
+    }
+  }, [activeTab, navigateSearchHistory, queueSearch]);
 
   const onSearchInputKeyDown = useCallback(
     (event: ReactKeyboardEvent<HTMLInputElement>) => {

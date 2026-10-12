@@ -73,8 +73,7 @@ export function MenuBar({
     return null;
   }
 
-  const menuLabel = (key: string, fallback: string): string =>
-    t(key, { defaultValue: fallback });
+  const menuLabel = (key: string, fallback: string): string => t(key, { defaultValue: fallback });
 
   const menus: Array<{ id: MenuId; label: string; items: MenuItem[] }> = [
     {
@@ -104,7 +103,11 @@ export function MenuBar({
       label: `${menuLabel('menu.view', '视图')}(V)`,
       items: [
         { label: '文件结果', checked: activeTab === 'files', onSelect: () => onTabChange('files') },
-        { label: '事件记录', checked: activeTab === 'events', onSelect: () => onTabChange('events') },
+        {
+          label: '事件记录',
+          checked: activeTab === 'events',
+          onSelect: () => onTabChange('events'),
+        },
         { separator: true, label: '' },
         { label: '状态栏', checked: showStatusBar, onSelect: onToggleStatusBar },
       ],
@@ -173,7 +176,11 @@ export function MenuBar({
             <div className="everything-menu-dropdown" role="menu">
               {menu.items.map((item, index) =>
                 item.separator ? (
-                  <div key={`separator-${index}`} className="everything-menu-separator" role="separator" />
+                  <div
+                    key={`separator-${index}`}
+                    className="everything-menu-separator"
+                    role="separator"
+                  />
                 ) : (
                   <button
                     key={`${menu.id}-${item.label}`}
