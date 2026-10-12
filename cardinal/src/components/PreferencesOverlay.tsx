@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { invoke } from '@tauri-apps/api/core';
 import { isComposingKeyboardEvent } from '../utils/keyboard';
 import { createGlassScene } from '@glass-sdk/liquid-glass/dom';
 import '@glass-sdk/liquid-glass/styles.css';
@@ -258,6 +259,10 @@ export function PreferencesOverlay({
     (onCancel ?? onClose)();
   };
 
+  const handleQuit = (): void => {
+    void invoke('quit_app');
+  };
+
   if (!open) {
     return null;
   }
@@ -424,6 +429,9 @@ export function PreferencesOverlay({
           </div>
         </div>
         <footer className="preferences-card__footer">
+          <button className="preferences-quit" type="button" onClick={handleQuit}>
+            {t('preferences.quit')}
+          </button>
           <button
             className="preferences-save"
             type="button"

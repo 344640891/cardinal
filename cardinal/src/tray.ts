@@ -1,10 +1,7 @@
 import { defaultWindowIcon } from '@tauri-apps/api/app';
 import { invoke } from '@tauri-apps/api/core';
 import { Image as TauriImage } from '@tauri-apps/api/image';
-import { Menu, MenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu';
 import { TrayIcon, type TrayIconOptions } from '@tauri-apps/api/tray';
-import i18n from './i18n/config';
-import { QUICK_LAUNCH_SHORTCUT } from './utils/globalShortcuts';
 import trayIconUrl from './assets/tray-icon.png?url';
 
 const TRAY_ID = 'cardinal.tray';
@@ -60,32 +57,13 @@ export async function setAutoHideOnFocusLoss(enabled: boolean): Promise<void> {
 }
 
 async function createTray(): Promise<void> {
-  const openItem = await MenuItem.new({
-    id: 'tray.open',
-    text: i18n.t('tray.open'),
-    accelerator: QUICK_LAUNCH_SHORTCUT,
-    action: () => {
-      void activateMainWindow();
-    },
-  });
-  const menu = await Menu.new({
-    items: [
-      openItem,
-      await PredefinedMenuItem.new({ item: 'Separator' }),
-      await PredefinedMenuItem.new({ item: 'Quit', text: i18n.t('tray.quit') }),
-    ],
-  });
   const options: TrayIconOptions = {
     id: TRAY_ID,
     tooltip: 'Cardinal',
     icon: (await loadTrayImage()) ?? (await defaultWindowIcon()) ?? undefined,
     iconAsTemplate: true,
-    menu,
-    // Keep the native menu on the right button, while using a left click to
-    // bring the main window back into view.
-    showMenuOnLeftClick: false,
     action: (event) => {
-      if (event.type === 'Click' && event.button === 'Left' && event.buttonState === 'Up') {
+      if (event.type === 'Click' && event.buttonState === 'Up') {
         void activateMainWindow();
       }
     },

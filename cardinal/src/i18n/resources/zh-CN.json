@@ -136,6 +136,7 @@
     "save": "保存",
     "cancel": "取消",
     "reset": "恢复默认设置",
+    "quit": "完全退出",
     "close": "关闭",
     "autoHideOnFocusLoss": {
       "label": "失去焦点自动隐藏"

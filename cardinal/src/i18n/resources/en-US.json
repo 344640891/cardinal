@@ -137,6 +137,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "reset": "Restore defaults",
+    "quit": "Quit Completely",
     "close": "Close",
     "autoHideOnFocusLoss": {
       "label": "Hide when focus is lost"

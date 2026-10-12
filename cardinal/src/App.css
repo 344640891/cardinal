@@ -1759,6 +1759,32 @@ button:active:not(:disabled) {
   justify-content: flex-end;
 }
 
+.preferences-quit {
+  margin-right: auto;
+  border: 1px solid var(--color-elevated-border, var(--color-border));
+  background: var(--color-elevated-bg);
+  color: var(--color-danger, #b42318);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.preferences-quit:hover {
+  border-color: var(--color-danger, #b42318);
+  box-shadow: 0 6px 14px rgba(180, 35, 24, 0.16);
+  transform: translateY(-1px);
+}
+
+.preferences-quit:focus-visible {
+  outline: 2px solid rgba(180, 35, 24, 0.4);
+  outline-offset: 2px;
+}
+
 .preferences-save {
   border: 1px solid transparent;
   background: var(--color-accent);

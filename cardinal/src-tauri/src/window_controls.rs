@@ -3,7 +3,7 @@ use crate::{TRAY_ICON_ENABLED, commands::SearchState};
 use objc2_app_kit::NSApplication;
 #[cfg(target_os = "macos")]
 use objc2_foundation::MainThreadMarker;
-use std::{sync::atomic::Ordering, thread, time::Duration};
+use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindow};
 use tracing::{error, info, warn};
 
@@ -94,6 +94,13 @@ pub fn is_main_window_foreground(app_handle: &AppHandle) -> bool {
 pub fn activate_main_window_impl(app: &AppHandle) {
     let app_for_activation = app.clone();
     if let Err(error) = app.run_on_main_thread(move || {
+        if let Err(error) = app_for_activation.set_activation_policy(tauri::ActivationPolicy::Regular)
+        {
+            error!(?error, "Failed to restore regular activation policy");
+        }
+        if let Err(error) = app_for_activation.set_dock_visibility(true) {
+            error!(?error, "Failed to restore Dock visibility");
+        }
         unhide_application();
         if let Some(window) = app_for_activation.get_webview_window("main") {
             activate_window(&window);
@@ -105,14 +112,13 @@ pub fn activate_main_window_impl(app: &AppHandle) {
         return;
     }
 
-    reassert_tray_policy(app);
     info!("Main window activated via command");
     if let Some(state) = app.try_state::<SearchState>() {
         let _ = state.update_window_state_tx.try_send(());
     }
 }
 
-fn reassert_tray_policy(app: &AppHandle) {
+pub fn restore_tray_policy(app: &AppHandle) {
     if !TRAY_ICON_ENABLED.load(Ordering::Acquire) {
         return;
     }
@@ -124,31 +130,12 @@ fn reassert_tray_policy(app: &AppHandle) {
         error!(?error, "Failed to reassert tray Dock visibility");
     }
 
-    let delayed_app = app.clone();
-    thread::spawn(move || {
-        thread::sleep(Duration::from_millis(150));
-        if !TRAY_ICON_ENABLED.load(Ordering::Acquire) {
-            return;
-        }
-        let app_for_policy = delayed_app.clone();
-        let _ = delayed_app.run_on_main_thread(move || {
-            if TRAY_ICON_ENABLED.load(Ordering::Acquire) {
-                if let Err(error) =
-                    app_for_policy.set_activation_policy(tauri::ActivationPolicy::Accessory)
-                {
-                    error!(?error, "Failed to reassert delayed tray activation policy");
-                }
-                if let Err(error) = app_for_policy.set_dock_visibility(false) {
-                    error!(?error, "Failed to reassert delayed tray Dock visibility");
-                }
-            }
-        });
-    });
 }
 
 pub fn hide_main_window_impl(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         hide_window(&window);
+        restore_tray_policy(app);
         info!("Main window hidden via command");
         if let Some(state) = app.try_state::<SearchState>() {
             let _ = state.update_window_state_tx.try_send(());
@@ -160,10 +147,11 @@ pub fn toggle_main_window_impl(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let toggle_result = toggle_window(&window);
         if matches!(toggle_result, WindowToggle::Hidden) {
+            restore_tray_policy(app);
             info!("Main window hidden via command");
         } else {
+            activate_main_window_impl(app);
             info!("Main window shown via command");
-            reassert_tray_policy(app);
         }
         if let Some(state) = app.try_state::<SearchState>() {
             let _ = state.update_window_state_tx.try_send(());

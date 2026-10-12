@@ -485,6 +485,11 @@ pub async fn toggle_main_window(app: AppHandle) {
 }
 
 #[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
+
+#[tauri::command]
 pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) -> Result<(), String> {
     let previous_enabled = TRAY_ICON_ENABLED.swap(enabled, Ordering::AcqRel);
     let generation = TRAY_POLICY_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
@@ -520,33 +525,6 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) -> Result
 
         unhide_application();
         activate_main_window_impl(&app_handle);
-        let activation_app = app_handle.clone();
-        thread::spawn(move || {
-            thread::sleep(Duration::from_millis(150));
-            if TRAY_POLICY_GENERATION.load(Ordering::Acquire) != generation {
-                return;
-            }
-            let app_for_activation = activation_app.clone();
-            let _ = activation_app.run_on_main_thread(move || {
-                if TRAY_POLICY_GENERATION.load(Ordering::Acquire) == generation {
-                    // Reassert the policy after startup activation. macOS can
-                    // restore the regular policy while the initial window is
-                    // being unhidden, which would put the app back in Dock.
-                    if let Err(error) = app_for_activation.set_activation_policy(if enabled {
-                        ActivationPolicy::Accessory
-                    } else {
-                        ActivationPolicy::Regular
-                    }) {
-                        error!("Failed to reassert activation policy: {error:?}");
-                    }
-                    unhide_application();
-                    activate_main_window_impl(&app_for_activation);
-                    if let Err(error) = app_for_activation.set_dock_visibility(!enabled) {
-                        error!("Failed to reassert Dock visibility: {error:?}");
-                    }
-                }
-            });
-        });
         if enabled {
             thread::spawn(move || {
                 thread::sleep(Duration::from_millis(1000));

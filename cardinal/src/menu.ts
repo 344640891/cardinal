@@ -48,19 +48,17 @@ async function buildAppMenu(): Promise<void> {
   });
   const quitItem = await PredefinedMenuItem.new({
     item: 'Quit',
-    text: menuText('menu.quit', `退出 ${name}`),
+    text: menuText('preferences.quit', '完全退出'),
+  });
+  const appSubmenu = await Submenu.new({
+    id: 'menu.app',
+    text: name,
+    items: [quitItem],
   });
   const fileSubmenu = await Submenu.new({
     id: 'menu.file',
     text: menuText('menu.file', '文件(F)'),
-    items: [
-      newWindowItem,
-      await separator(),
-      preferencesItem,
-      hideItem,
-      await separator(),
-      quitItem,
-    ],
+    items: [newWindowItem, await separator(), preferencesItem, hideItem],
   });
 
   const editSubmenu = await Submenu.new({
@@ -174,6 +172,7 @@ async function buildAppMenu(): Promise<void> {
 
   const menu = await Menu.new({
     items: [
+      appSubmenu,
       fileSubmenu,
       editSubmenu,
       viewSubmenu,

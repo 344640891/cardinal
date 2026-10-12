@@ -17,7 +17,8 @@ use commands::{
     close_quicklook, copy_files_to_clipboard, get_app_status, get_nodes_info, get_sorted_view,
     hide_main_window, normalize_watch_config, open_in_finder, open_path, search,
     set_auto_hide_on_focus_loss, set_tray_activation_policy, set_watch_config, start_logic,
-    toggle_main_window, toggle_quicklook, trigger_rescan, update_icon_viewport, update_quicklook,
+    quit_app, toggle_main_window, toggle_quicklook, trigger_rescan, update_icon_viewport,
+    update_quicklook,
 };
 use crossbeam_channel::{Receiver, RecvTimeoutError, Sender, bounded, unbounded};
 use lifecycle::{
@@ -38,7 +39,7 @@ use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
 use tracing::{info, level_filters::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
-use window_controls::hide_window;
+use window_controls::{hide_window, restore_tray_policy};
 
 static DB_PATH: OnceCell<PathBuf> = OnceCell::new();
 pub(crate) static LOGIC_START: OnceCell<Sender<LogicStartConfig>> = OnceCell::new();
@@ -137,6 +138,7 @@ pub fn run() -> Result<()> {
                     if let Some(main_window) = window.get_webview_window("main")
                         && hide_window(&main_window)
                     {
+                        restore_tray_policy(window.app_handle());
                         let _ = update_window_state_tx_for_window.try_send(());
                         info!("Main window hidden after losing focus");
                     }
@@ -154,6 +156,7 @@ pub fn run() -> Result<()> {
                     };
 
                     if hide_window(&window) {
+                        restore_tray_policy(window.app_handle());
                         let _ = update_window_state_tx_for_window.try_send(());
                         info!("Main window hidden; Cardinal keeps running in the background");
                     }
@@ -187,6 +190,7 @@ pub fn run() -> Result<()> {
             start_logic,
             hide_main_window,
             activate_main_window,
+            quit_app,
             toggle_main_window,
             set_tray_activation_policy,
             set_auto_hide_on_focus_loss,
