@@ -38,13 +38,14 @@ use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_window_state::StateFlags;
 use tracing::{info, level_filters::LevelFilter, warn};
 use tracing_subscriber::EnvFilter;
-use window_controls::{activate_window, hide_window};
+use window_controls::hide_window;
 
 static DB_PATH: OnceCell<PathBuf> = OnceCell::new();
 pub(crate) static LOGIC_START: OnceCell<Sender<LogicStartConfig>> = OnceCell::new();
 pub(crate) static SUPPRESS_NEXT_FOCUS_LOSS: AtomicBool = AtomicBool::new(false);
 pub(crate) static FOCUS_LOSS_HANDLING_STATE: AtomicU64 = AtomicU64::new(0);
 pub(crate) static TRAY_POLICY_GENERATION: AtomicU64 = AtomicU64::new(0);
+pub(crate) static TRAY_ICON_ENABLED: AtomicBool = AtomicBool::new(false);
 pub(crate) static WINDOW_HAS_BEEN_FOCUSED: AtomicBool = AtomicBool::new(false);
 pub(crate) static AUTO_HIDE_ON_FOCUS_LOSS: AtomicBool = AtomicBool::new(true);
 pub(crate) const DEFAULT_SYSTEM_IGNORE_PATH: &str = "/System/Volumes/Data";
@@ -258,11 +259,7 @@ pub fn run() -> Result<()> {
             RunEvent::Reopen { .. } => {
                 // On macOS, clicking the Dock icon should bring the main window back even if the
                 // app still "has windows" but they are hidden.
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    activate_window(&window);
-                } else {
-                    warn!("Reopen requested but main window is unavailable");
-                }
+                window_controls::activate_main_window_impl(&app_handle);
             }
             _ => {}
         });

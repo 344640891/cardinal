@@ -1,6 +1,6 @@
 use crate::{
     AUTO_HIDE_ON_FOCUS_LOSS, DEFAULT_SYSTEM_IGNORE_PATH, FOCUS_LOSS_HANDLING_STATE, LOGIC_START,
-    LogicStartConfig, SUPPRESS_NEXT_FOCUS_LOSS, TRAY_POLICY_GENERATION,
+    LogicStartConfig, SUPPRESS_NEXT_FOCUS_LOSS, TRAY_ICON_ENABLED, TRAY_POLICY_GENERATION,
     lifecycle::load_app_state,
     quicklook::{
         QuickLookItemInput, close_preview_panel, toggle_preview_panel, update_preview_panel,
@@ -486,6 +486,7 @@ pub async fn toggle_main_window(app: AppHandle) {
 
 #[tauri::command]
 pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let previous_enabled = TRAY_ICON_ENABLED.swap(enabled, Ordering::AcqRel);
     let generation = TRAY_POLICY_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
     let disabled_state = generation << 1;
     FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
@@ -499,11 +500,13 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) -> Result
     } else {
         ActivationPolicy::Regular
     }) {
+        TRAY_ICON_ENABLED.store(previous_enabled, Ordering::Release);
         SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
         FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
         return Err(format!("Failed to set activation policy: {error}"));
     }
     if let Err(error) = app.set_dock_visibility(!enabled) {
+        TRAY_ICON_ENABLED.store(previous_enabled, Ordering::Release);
         SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
         FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
         return Err(format!("Failed to set Dock visibility: {error}"));
@@ -558,6 +561,7 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) -> Result
         }
     }) {
         error!("Failed to dispatch activation policy update: {e:?}");
+        TRAY_ICON_ENABLED.store(previous_enabled, Ordering::Release);
         SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
         FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
         return Err(format!("Failed to dispatch activation policy update: {e}"));
