@@ -92,15 +92,23 @@ pub fn is_main_window_foreground(app_handle: &AppHandle) -> bool {
 }
 
 pub fn activate_main_window_impl(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        activate_window(&window);
-        reassert_tray_policy(app);
-        info!("Main window activated via command");
-        if let Some(state) = app.try_state::<SearchState>() {
-            let _ = state.update_window_state_tx.try_send(());
+    let app_for_activation = app.clone();
+    if let Err(error) = app.run_on_main_thread(move || {
+        unhide_application();
+        if let Some(window) = app_for_activation.get_webview_window("main") {
+            activate_window(&window);
+        } else {
+            warn!("Activate requested but main window is unavailable");
         }
-    } else {
-        warn!("Activate requested but main window is unavailable");
+    }) {
+        error!(?error, "Failed to dispatch main window activation");
+        return;
+    }
+
+    reassert_tray_policy(app);
+    info!("Main window activated via command");
+    if let Some(state) = app.try_state::<SearchState>() {
+        let _ = state.update_window_state_tx.try_send(());
     }
 }
 
