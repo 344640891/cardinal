@@ -90,7 +90,9 @@ export function useAppPreferences({
 
   useEffect(() => {
     persistTrayIconEnabled(trayIconEnabled);
-    void setTrayEnabled(trayIconEnabled);
+    void setTrayEnabled(trayIconEnabled).catch((error) => {
+      console.error('Failed to apply tray icon preference', error);
+    });
   }, [trayIconEnabled]);
 
   useEffect(() => {

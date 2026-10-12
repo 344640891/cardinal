@@ -485,11 +485,29 @@ pub async fn toggle_main_window(app: AppHandle) {
 }
 
 #[tauri::command]
-pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) {
+pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) -> Result<(), String> {
     let generation = TRAY_POLICY_GENERATION.fetch_add(1, Ordering::Relaxed) + 1;
     let disabled_state = generation << 1;
     FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
     SUPPRESS_NEXT_FOCUS_LOSS.store(enabled, Ordering::Relaxed);
+
+    // Set the policy through the runtime handle directly. This dispatches the
+    // policy update to Tao's event loop and reports failures to the caller,
+    // instead of silently losing the update inside a nested main-thread task.
+    if let Err(error) = app.set_activation_policy(if enabled {
+        ActivationPolicy::Accessory
+    } else {
+        ActivationPolicy::Regular
+    }) {
+        SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
+        FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
+        return Err(format!("Failed to set activation policy: {error}"));
+    }
+    if let Err(error) = app.set_dock_visibility(!enabled) {
+        SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
+        FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
+        return Err(format!("Failed to set Dock visibility: {error}"));
+    }
 
     let app_handle = app.clone();
     if let Err(e) = app.run_on_main_thread(move || {
@@ -497,14 +515,6 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) {
             return;
         }
 
-        let policy = if enabled {
-            ActivationPolicy::Accessory
-        } else {
-            ActivationPolicy::Regular
-        };
-        if let Err(e) = app_handle.set_activation_policy(policy) {
-            error!("Failed to set activation policy: {e:?}");
-        }
         unhide_application();
         activate_main_window_impl(&app_handle);
         let activation_app = app_handle.clone();
@@ -516,8 +526,21 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) {
             let app_for_activation = activation_app.clone();
             let _ = activation_app.run_on_main_thread(move || {
                 if TRAY_POLICY_GENERATION.load(Ordering::Acquire) == generation {
+                    // Reassert the policy after startup activation. macOS can
+                    // restore the regular policy while the initial window is
+                    // being unhidden, which would put the app back in Dock.
+                    if let Err(error) = app_for_activation.set_activation_policy(if enabled {
+                        ActivationPolicy::Accessory
+                    } else {
+                        ActivationPolicy::Regular
+                    }) {
+                        error!("Failed to reassert activation policy: {error:?}");
+                    }
                     unhide_application();
                     activate_main_window_impl(&app_for_activation);
+                    if let Err(error) = app_for_activation.set_dock_visibility(!enabled) {
+                        error!("Failed to reassert Dock visibility: {error:?}");
+                    }
                 }
             });
         });
@@ -536,7 +559,11 @@ pub async fn set_tray_activation_policy(app: AppHandle, enabled: bool) {
     }) {
         error!("Failed to dispatch activation policy update: {e:?}");
         SUPPRESS_NEXT_FOCUS_LOSS.store(false, Ordering::Relaxed);
+        FOCUS_LOSS_HANDLING_STATE.store(disabled_state, Ordering::Release);
+        return Err(format!("Failed to dispatch activation policy update: {e}"));
     }
+
+    Ok(())
 }
 
 #[tauri::command]

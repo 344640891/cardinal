@@ -25,11 +25,15 @@ export function initializeTray(): Promise<void> {
 }
 
 export async function setTrayEnabled(enabled: boolean): Promise<void> {
-  await invoke('set_tray_activation_policy', { enabled }).catch((error) => {
+  let policyError: unknown;
+  try {
+    await invoke('set_tray_activation_policy', { enabled });
+  } catch (error) {
+    policyError = error;
     console.error('Failed to update activation policy', error);
-  });
+  }
 
-  if (enabled) {
+  if (enabled && policyError === undefined) {
     await initializeTray();
     return;
   }
@@ -43,6 +47,10 @@ export async function setTrayEnabled(enabled: boolean): Promise<void> {
   trayIcon = null;
 
   await Promise.allSettled([current?.close(), TrayIcon.removeById(TRAY_ID)]);
+
+  if (policyError !== undefined) {
+    throw policyError;
+  }
 }
 
 export async function setAutoHideOnFocusLoss(enabled: boolean): Promise<void> {
@@ -73,6 +81,14 @@ async function createTray(): Promise<void> {
     icon: (await loadTrayImage()) ?? (await defaultWindowIcon()) ?? undefined,
     iconAsTemplate: true,
     menu,
+    // Keep the native menu on the right button, while using a left click to
+    // bring the main window back into view.
+    showMenuOnLeftClick: false,
+    action: (event) => {
+      if (event.type === 'Click' && event.button === 'Left' && event.buttonState === 'Up') {
+        void activateMainWindow();
+      }
+    },
   };
 
   trayIcon = await TrayIcon.new(options);
